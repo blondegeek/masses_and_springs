@@ -23,9 +23,34 @@
   <!-- <script src="https://code.jquery.com/pep/0.4.1/pep.js"></script> -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/5.0.0/math.js"></script>
   <script src="https://cdn.babylonjs.com/cannon.js"></script>
-  <!-- <script src="https://preview.babylonjs.com/cannon.js"></script> -->
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+  <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+  <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+  <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+  <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+  <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+  <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+  <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+  <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <script src="https://preview.babylonjs.com/cannon.js"></script>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+  <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
   <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <script src="https://code.jquery.com/pep/0.4.2/pep.min.js"></script> -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+  <script src="https://preview.babylonjs.com/cannon.js"></script>
+  <script src="https://preview.babylonjs.com/Oimo.js"></script>
+  <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+  <script src="https://preview.babylonjs.com/babylon.js"></script>
+  <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+  <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+  <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+  <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+  <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+  <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+  <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
 </head>
 
 <body>
@@ -79,168 +104,195 @@
 
     // No gravity please. :)
     scene.enablePhysics(new BABYLON.Vector3(0, 0, 0));
-    sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor,
-      { mass: 1, restitution: 0.9, friction: 10},
-      scene);
-      sphere2.physicsImpostor = new BABYLON.PhysicsImpostor(sphere2, BABYLON.PhysicsImpostor.SphereImpostor,
-        { mass: 0.5, restitution: 0.9, friction: 10},
-        scene);
+    sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
+    sphere2.physicsImpostor = new BABYLON.PhysicsImpostor(sphere2, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 0.5, restitution: 0.9, friction: 10}, scene);
 
-        var springJoing = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
-          length: 8,
-          stiffness: 10,
-          damping: 0.5
-        });
-        sphere.physicsImpostor.addJoint(sphere2.physicsImpostor, springJoing);
-        sphere.position.y = 10;
+    // Slider https://www.babylonjs-playground.com/#U9AC0N#1
+    var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-        document.getElementById("button").addEventListener("click",function () {
-          // Our built-in 'sphere' shape. Params: name, subdivs, size, scene
-          var sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 2, scene);
-          // Move the sphere upward 1/2 its height
-          sphere.position.y = 1;
-        });
+    var panel = new BABYLON.GUI.StackPanel();
+    panel.width = "220px";
+    panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    advancedTexture.addControl(panel);
 
-        // https://www.babylonjs.com/demos/dragndrop/dragdrop.js
-        var getGroundPosition = function (evt) {
-          // Use a predicate to get position on the ground
-          var pickinfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh == ground; });
-          if (pickinfo.hit) {
-            return pickinfo.pickedPoint;
+    var header = new BABYLON.GUI.TextBlock();
+    header.text = "Spring length: 8";
+    header.height = "30px";
+    header.color = "white";
+    panel.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    slider.minimum = 5;
+    slider.maximum = 10;
+    slider.value = 8;
+    slider.height = "20px";
+    slider.width = "200px";
+    slider.onValueChangedObservable.add(function(value) {
+      header.text = "Spring length: " + value;
+      if (springJoing) {
+        // This is definitely not right, but not sure what to put here.
+        springJoing.jointData.length = value;
+      }
+    });
+    panel.addControl(slider);
+
+
+    var springJoing = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
+      // length: 8,
+      length: slider.value,
+      stiffness: 10,
+      damping: 0.5
+    });
+    sphere.physicsImpostor.addJoint(sphere2.physicsImpostor, springJoing);
+    sphere.position.y = 10;
+
+    document.getElementById("button").addEventListener("click",function () {
+      // Our built-in 'sphere' shape. Params: name, subdivs, size, scene
+      var sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 2, scene);
+      // Move the sphere upward 1/2 its height
+      sphere.position.y = 1;
+    });
+
+    // https://www.babylonjs.com/demos/dragndrop/dragdrop.js
+    var getGroundPosition = function (evt) {
+      // Use a predicate to get position on the ground
+      var pickinfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh == ground; });
+      if (pickinfo.hit) {
+        return pickinfo.pickedPoint;
+      }
+
+      return null;
+    }
+
+    var pickedMeshesInfo = [];
+    var onPointerDown = function (evt) {
+      if (evt.button !== 0) {
+        return;
+      }
+      if (event.ctrlKey) {
+        // Remove Meshes from highlight layer
+        for (var i = 0; i < pickedMeshesInfo.length; i++) {
+          hl.removeMesh(pickedMeshesInfo[i]);
+        }
+        pickedMeshesInfo.length = 0;
+      }
+
+      // http://www.babylonjs-playground.com/#SWSKU#6
+      if (event.altKey) {
+        // check if we are under a mesh
+        var pickInfo = scene.pick(scene.pointerX, scene.pointerY);
+        if (pickInfo.hit) {
+          pickedMeshesInfo.push(pickInfo.pickedMesh);
+          // Add mesh to highlight layer
+          hl.addMesh(pickInfo.pickedMesh, BABYLON.Color3.Green());
+          startingPoint = getGroundPosition();
+
+          if (startingPoint) { // we need to disconnect camera from canvas
+            setTimeout(function () {
+              camera.detachControl(canvas);
+            }, 0);
           }
+        }
+      }
+      else{
 
-          return null;
+        // check if we are under a mesh
+        var pickInfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh !== ground; });
+        if (pickInfo.hit) {
+          currentMesh = pickInfo.pickedMesh;
+          startingPoint = getGroundPosition(evt);
+
+          if (startingPoint) { // we need to disconnect camera from canvas
+            setTimeout(function () {
+              camera.detachControl(canvas);
+            }, 0);
+          }
+        }
+      }}
+
+      var onPointerUp = function () {
+        if (startingPoint) {
+          camera.attachControl(canvas);
+          startingPoint = null;
+          return;
+        }
+      }
+
+      var onPointerMove = function (evt) {
+        if (!startingPoint) {
+          return;
         }
 
-        var pickedMeshesInfo = [];
-        var onPointerDown = function (evt) {
-          if (evt.button !== 0) {
-            return;
+        var current = getGroundPosition(evt);
+
+        if (!current) {
+          return;
+        }
+
+        var diff = current.subtract(startingPoint);
+
+        if (pickedMeshesInfo.length > 0) {
+          for (var i = 0; i < pickedMeshesInfo.length; i++) {
+            pickedMeshesInfo[i].position.addInPlace(diff);
+            //currentMesh.isPickable = false;
+            startingPoint = current;
           }
-          if (event.ctrlKey) {
-            // Remove Meshes from highlight layer
-            for (var i = 0; i < pickedMeshesInfo.length; i++) {
-              hl.removeMesh(pickedMeshesInfo[i]);
-            }
-            pickedMeshesInfo.length = 0;
+        }
+        else{
+          currentMesh.position.addInPlace(diff);
+          startingPoint = current;
+        }
+        // currentMesh.position.addInPlace(diff);
+        // startingPoint = current;
+
+      }
+
+      canvas.addEventListener("pointerdown", onPointerDown, false);
+      canvas.addEventListener("pointerup", onPointerUp, false);
+      canvas.addEventListener("pointermove", onPointerMove, false);
+
+      scene.onDispose = function () {
+        canvas.removeEventListener("pointerdown", onPointerDown);
+        canvas.removeEventListener("pointerup", onPointerUp);
+        canvas.removeEventListener("pointermove", onPointerMove);
+      }
+
+      // Add friction
+      // http://www.babylonjs-playground.com/#OJVVA#3
+      var bodies = [sphere.physicsImpostor, sphere2.physicsImpostor];
+      var timer = 0;
+      scene.registerBeforeRender(function () {
+        bodies.forEach(function (b) {
+          var objVelocity = b.getLinearVelocity()
+          var velocityVector = Object.keys(objVelocity).map(function(key) {return objVelocity[key];});
+          if (math.norm(velocityVector) > 0.0) {
+            // console.log(math.norm(velocityVector))
+            var frictionStrength = 1.05
+            b.setLinearVelocity(new BABYLON.Vector3(b.getLinearVelocity().x / frictionStrength,
+            b.getLinearVelocity().y / frictionStrength,
+            b.getLinearVelocity().z / frictionStrength));
+            // console.log(b.getLinearVelocity())
           }
-
-          // http://www.babylonjs-playground.com/#SWSKU#6
-          if (event.altKey) {
-            // check if we are under a mesh
-            var pickInfo = scene.pick(scene.pointerX, scene.pointerY);
-            if (pickInfo.hit) {
-              pickedMeshesInfo.push(pickInfo.pickedMesh);
-              // Add mesh to highlight layer
-              hl.addMesh(pickInfo.pickedMesh, BABYLON.Color3.Green());
-              startingPoint = getGroundPosition();
-
-              if (startingPoint) { // we need to disconnect camera from canvas
-                setTimeout(function () {
-                  camera.detachControl(canvas);
-                }, 0);
-              }
-            }
-          }
-          else{
-
-            // check if we are under a mesh
-            var pickInfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh !== ground; });
-            if (pickInfo.hit) {
-              currentMesh = pickInfo.pickedMesh;
-              startingPoint = getGroundPosition(evt);
-
-              if (startingPoint) { // we need to disconnect camera from canvas
-                setTimeout(function () {
-                  camera.detachControl(canvas);
-                }, 0);
-              }
-            }
-          }}
-
-          var onPointerUp = function () {
-            if (startingPoint) {
-              camera.attachControl(canvas);
-              startingPoint = null;
-              return;
-            }
-          }
-
-          var onPointerMove = function (evt) {
-            if (!startingPoint) {
-              return;
-            }
-
-            var current = getGroundPosition(evt);
-
-            if (!current) {
-              return;
-            }
-
-            var diff = current.subtract(startingPoint);
-
-            if (pickedMeshesInfo.length > 0) {
-              for (var i = 0; i < pickedMeshesInfo.length; i++) {
-                pickedMeshesInfo[i].position.addInPlace(diff);
-                //currentMesh.isPickable = false;
-                startingPoint = current;
-              }
-            }
-            else{
-              currentMesh.position.addInPlace(diff);
-              startingPoint = current;
-            }
-            // currentMesh.position.addInPlace(diff);
-            // startingPoint = current;
-
-          }
-
-          canvas.addEventListener("pointerdown", onPointerDown, false);
-          canvas.addEventListener("pointerup", onPointerUp, false);
-          canvas.addEventListener("pointermove", onPointerMove, false);
-
-          scene.onDispose = function () {
-            canvas.removeEventListener("pointerdown", onPointerDown);
-            canvas.removeEventListener("pointerup", onPointerUp);
-            canvas.removeEventListener("pointermove", onPointerMove);
-          }
-
-          // Add friction
-          // http://www.babylonjs-playground.com/#OJVVA#3
-          var bodies = [sphere.physicsImpostor, sphere2.physicsImpostor];
-          var timer = 0;
-          scene.registerBeforeRender(function () {
-            bodies.forEach(function (b) {
-              var objVelocity = b.getLinearVelocity()
-              var velocityVector = Object.keys(objVelocity).map(function(key) {return objVelocity[key];});
-              if (math.norm(velocityVector) > 0.0) {
-                // console.log(math.norm(velocityVector))
-                var frictionStrength = 1.05
-                b.setLinearVelocity(new BABYLON.Vector3(b.getLinearVelocity().x / frictionStrength,
-                b.getLinearVelocity().y / frictionStrength,
-                b.getLinearVelocity().z / frictionStrength));
-                // console.log(b.getLinearVelocity())
-              }
-            });
-          });
-
-          return scene;
-        };
-
-        /******* End of the create scene function ******/
-
-        var scene = createScene(); //Call the createScene function
-
-        engine.runRenderLoop(function () { // Register a render loop to repeatedly render the scene
-          scene.render();
         });
+      });
 
+      return scene;
+    };
 
-        window.addEventListener("resize", function () { // Watch for browser/canvas resize events
-          engine.resize();
-        });
-        </script>
+    /******* End of the create scene function ******/
 
-      </body>
+    var scene = createScene(); //Call the createScene function
 
-      </html>
+    engine.runRenderLoop(function () { // Register a render loop to repeatedly render the scene
+      scene.render();
+    });
+
+    window.addEventListener("resize", function () { // Watch for browser/canvas resize events
+      engine.resize();
+    });
+    </script>
+
+  </body>
+
+  </html>
