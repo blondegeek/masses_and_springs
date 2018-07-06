@@ -54,7 +54,9 @@
 </head>
 
 <body>
-  <button id="button" style="position: absolute; right: 10px; top: 100px;">Click Me!</button>
+  <button id="add_sphere" style="position: absolute; right: 10px; top: 100px;">Add sphere</button>
+  <button id="add_spring" style="position: absolute; right: 10px; top: 120px;">Add spring</button>
+
 
   <canvas id="renderCanvas" touch-action="none"></canvas> //touch-action="none" for best results from PEP
 
@@ -80,7 +82,7 @@
     var scene = new BABYLON.Scene(engine);
 
     // Add a camera to the scene and attach it to the canvas
-    var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, BABYLON.Vector3.Zero(), scene);
+    var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 20, BABYLON.Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
 
     // Create highlight layer
@@ -94,6 +96,8 @@
 
     // Ground
     var ground = BABYLON.Mesh.CreateGround("ground", 1000, 1000, 1, scene, false);
+    // Ensure that ground doesn't get in the way of picking other meshes.
+    ground.isPickable = false;
     var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
     myMaterial.alpha = 0.0
     ground.material = myMaterial
@@ -129,10 +133,9 @@
     slider.height = "20px";
     slider.width = "200px";
     slider.onValueChangedObservable.add(function(value) {
-      header.text = "Spring length: " + value;
+      header.text = "Spring length: " + value.toFixed(2);
       if (springJoing) {
-        // This is definitely not right, but not sure what to put here.
-        springJoing.jointData.length = value;
+        springJoing.physicsJoint.restLength = value;
       }
     });
     panel.addControl(slider);
@@ -147,11 +150,54 @@
     sphere.physicsImpostor.addJoint(sphere2.physicsImpostor, springJoing);
     sphere.position.y = 10;
 
-    document.getElementById("button").addEventListener("click",function () {
+    document.getElementById("add_sphere").addEventListener("click",function () {
       // Our built-in 'sphere' shape. Params: name, subdivs, size, scene
-      var sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 2, scene);
+      var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
+      sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
       // Move the sphere upward 1/2 its height
+      bodies.push(sphere.physicsImpostor);
       sphere.position.y = 1;
+    });
+
+    document.getElementById("add_spring").addEventListener("click",function (){
+      // First check if there are two bodies selected
+      // Add cylinder and
+      // Check that pickedMeshesInfo has two sphere elements
+
+      if (pickedMeshesInfo.length == 2){
+        // Add spring
+        var header = new BABYLON.GUI.TextBlock();
+        header.text = "Spring length: 8";
+        header.height = "30px";
+        header.color = "white";
+        panel.addControl(header);
+
+        var slider = new BABYLON.GUI.Slider();
+        slider.minimum = 5;
+        slider.maximum = 10;
+        slider.value = 8;
+        slider.height = "20px";
+        slider.width = "200px";
+        slider.onValueChangedObservable.add(function(value) {
+          header.text = "Spring length: " + value.toFixed(2);
+          if (springJoing2) {
+            springJoing2.physicsJoint.restLength = value;
+          }
+        });
+        panel.addControl(slider);
+
+        var springJoing2 = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
+          length: slider.value,
+          stiffness: 10,
+          damping: 0.5
+        });
+        mesh1 = pickedMeshesInfo[0]
+        mesh2 = pickedMeshesInfo[1]
+        mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, springJoing2);
+      }
+      // Need to return spring?
+      // Also, really need to figure out variable scoping.
+      return
     });
 
     // https://www.babylonjs.com/demos/dragndrop/dragdrop.js
@@ -260,9 +306,11 @@
 
       // Add friction
       // http://www.babylonjs-playground.com/#OJVVA#3
+      // Need to add more things to this list.
       var bodies = [sphere.physicsImpostor, sphere2.physicsImpostor];
       var timer = 0;
       scene.registerBeforeRender(function () {
+        // Add function to update all cylinders for springs.
         bodies.forEach(function (b) {
           var objVelocity = b.getLinearVelocity()
           var velocityVector = Object.keys(objVelocity).map(function(key) {return objVelocity[key];});
