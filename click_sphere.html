@@ -21,24 +21,9 @@
   }
   </style>
   <!-- <script src="https://code.jquery.com/pep/0.4.1/pep.js"></script> -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/5.0.0/math.js"></script>
   <script src="https://cdn.babylonjs.com/cannon.js"></script>
-  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
-  <script src="https://preview.babylonjs.com/earcut.min.js"></script>
-  <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
-  <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
-  <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
-  <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
-  <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
-  <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
-  <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
-  <script src="https://preview.babylonjs.com/cannon.js"></script>
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
-  <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
-  <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-  <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
-  <script src="https://code.jquery.com/pep/0.4.2/pep.min.js"></script> -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
   <script src="https://preview.babylonjs.com/cannon.js"></script>
   <script src="https://preview.babylonjs.com/Oimo.js"></script>
@@ -62,6 +47,9 @@
 
   <script>
 
+  // Disable menu that pops up when ctrl is pressed on canvas
+  $('body').on('contextmenu', '#renderCanvas', function(e){ return false; });
+
   var canvas = document.getElementById("renderCanvas"); // Get the canvas element
   var startingPoint;
   var currentMesh;
@@ -83,7 +71,7 @@
 
     // Add a camera to the scene and attach it to the canvas
     var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 20, BABYLON.Vector3.Zero(), scene);
-    camera.attachControl(canvas, true);
+    camera.attachControl(canvas, true, true);
 
     // Create highlight layer
     var hl = new BABYLON.HighlightLayer("hl1", scene);
