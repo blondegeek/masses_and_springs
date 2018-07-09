@@ -178,6 +178,7 @@
        },
        scene
       )
+      cylinder.isPickable = false;
       cylinder.material = cylinderMat;
       cylinder.start_mesh = mesh1;
       cylinder.end_mesh = mesh2;
@@ -195,6 +196,7 @@
         },
         scene
       )
+      return cylinder
     }
 
     // https://www.babylonjs.com/demos/dragndrop/dragdrop.js
@@ -244,8 +246,11 @@
         var pickInfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh !== ground; });
         if (pickInfo.hit) {
           currentMesh = pickInfo.pickedMesh;
-          startingPoint = getGroundPosition(evt);
-
+          // Add this to make sure we are not moving isPickable == false meshes
+          // Does this create a problem with ground?
+          if (currentMesh.isPickable) {
+            startingPoint = getGroundPosition(evt);
+          }
           if (startingPoint) { // we need to disconnect camera from canvas
             setTimeout(function () {
               camera.detachControl(canvas);
@@ -278,7 +283,6 @@
         if (pickedMeshesInfo.length > 0) {
           for (var i = 0; i < pickedMeshesInfo.length; i++) {
             pickedMeshesInfo[i].position.addInPlace(diff);
-            //currentMesh.isPickable = false;
             startingPoint = current;
           }
         }
@@ -305,7 +309,6 @@
       // http://www.babylonjs-playground.com/#OJVVA#3
       // Need to add more things to this list.
       var bodies = [];
-      var cylinders = [];
       var joints = [];
       var timer = 0;
 
@@ -324,7 +327,8 @@
         });
         // Add function to update all cylinders for springs.
         joints.forEach(function (joint) {
-          updateCylinder(joint.cylinder)
+          cylinder = updateCylinder(joint.cylinder)
+          cylinder.isPickable = false;
         });
       });
 
