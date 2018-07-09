@@ -152,61 +152,49 @@
         joints.push(joint);
         mesh1 = pickedMeshesInfo[0];
         mesh2 = pickedMeshesInfo[1];
+        joint.start_mesh = mesh1
+        joint.end_mesh = mesh2
         mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
-
+        console.log(joint.start_mesh.position)
         // Create cylinder
-        createCylinderForSpring(mesh1, mesh2, joint)
+        createCylinderForSpring(joint)
       }
       return
     });
 
-    function createCylinderForSpring(mesh1, mesh2, joint) {
-      var vstart = mesh1.position;
-      var vend = mesh2.position;
-      var distance = BABYLON.Vector3.Distance(vstart,vend);
+    function createCylinderForSpring(joint) {
+      var vstart = joint.start_mesh.position;
+      var vend = joint.end_mesh.position;
+      var path = [joint.start_mesh.position, joint.end_mesh.position];
       var cyl_diameter = 0.5; // Ultimately, make this reflect the strength of spring
       var number_of_sides = 36;
-      var cylinder = new BABYLON.Mesh.CreateCylinder(
+
+      console.log(path)
+      var cylinder = new BABYLON.MeshBuilder.CreateTube(
         "cylinder",
-        distance,
-        cyl_diameter,
-        cyl_diameter,
-        number_of_sides,
-        scene,
-        true); // Not sure how these arguements are assigned to the optional args of this function
+        {path : path,
+         radius: cyl_diameter/2.0,
+         updatable: true
+       },
+       scene
+      )
       cylinder.material = cylinderMat;
       cylinder.start_mesh = mesh1;
       cylinder.end_mesh = mesh2;
-      // This is to keep track of current orientation.
-      cylinder.start_coord = cylinder.position.subtract(new BABYLON.Vector3(0, distance/2, 0));
-      cylinder.end_coord = cylinder.position.add(new BABYLON.Vector3(0, distance/2, 0));
+
       cylinder.joint = joint;
-      orientCylinder(cylinder);
+      joint.cylinder = cylinder;
     }
 
-    function orientCylinder(cylinder) {
-      var vstart = cylinder.start_mesh.position;
-      var vend = cylinder.end_mesh.position;
-      var v1 = vend.subtract(vstart);
-      v1.normalize();
-
-      var v2 = cylinder.end_coord.subtract(cylinder.start_coord)
-      v2.normalize()
-      // console.log(v2)
-      // var v2 = new BABYLON.Vector3(0, 1, 0); // Axis this is created along
-      // Using cross we will have a vector perpendicular to both vectors
-      var axis = BABYLON.Vector3.Cross(v1, v2);
-      axis.normalize();
-
-      var angle = BABYLON.Vector3.Dot(v1, v2);
-
-      // Then using axis rotation
-      cylinder.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, -Math.PI / 2 + angle);
-      cylinder.position = cylinder.start_mesh.position.add(cylinder.end_mesh.position).scale(0.5)
-
-      // Update cylinder end points
-      cylinder.start_coord = cylinder.start_mesh.position
-      cylinder.end_coord = cylinder.end_mesh.position
+    function updateCylinder(cylinder) {
+      cylinder = BABYLON.MeshBuilder.CreateTube(
+        "cylinder",
+        {path : [cylinder.start_mesh.position, cylinder.end_mesh.position],
+          radius: cylinder.radius,
+          instance: cylinder
+        },
+        scene
+      )
     }
 
     // https://www.babylonjs.com/demos/dragndrop/dragdrop.js
@@ -320,8 +308,8 @@
       var cylinders = [];
       var joints = [];
       var timer = 0;
+
       scene.registerBeforeRender(function () {
-        // Add function to update all cylinders for springs.
         bodies.forEach(function (b) {
           var objVelocity = b.getLinearVelocity()
           var velocityVector = Object.keys(objVelocity).map(function(key) {return objVelocity[key];});
@@ -333,6 +321,10 @@
             b.getLinearVelocity().z / frictionStrength));
             // console.log(b.getLinearVelocity())
           }
+        });
+        // Add function to update all cylinders for springs.
+        joints.forEach(function (joint) {
+          updateCylinder(joint.cylinder)
         });
       });
 
