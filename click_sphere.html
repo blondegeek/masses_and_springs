@@ -82,6 +82,10 @@
     var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
     var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 1, -1), scene);
 
+    var cylinderMat = new BABYLON.StandardMaterial("cylinder_mat", scene);
+    cylinderMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    cylinderMat.alpha = 0.25;
+
     // Ground
     var ground = BABYLON.Mesh.CreateGround("ground", 1000, 1000, 1, scene, false);
     // Ensure that ground doesn't get in the way of picking other meshes.
@@ -90,14 +94,8 @@
     myMaterial.alpha = 0.0
     ground.material = myMaterial
 
-    // Add and manipulate meshes in the scene
-    var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:2}, scene);
-    var sphere2 = BABYLON.MeshBuilder.CreateSphere("sphere2", {diameter:1}, scene);
-
     // No gravity please. :)
     scene.enablePhysics(new BABYLON.Vector3(0, 0, 0));
-    sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
-    sphere2.physicsImpostor = new BABYLON.PhysicsImpostor(sphere2, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 0.5, restitution: 0.9, friction: 10}, scene);
 
     // Slider https://www.babylonjs-playground.com/#U9AC0N#1
     var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -108,41 +106,12 @@
     panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
     advancedTexture.addControl(panel);
 
-    var header = new BABYLON.GUI.TextBlock();
-    header.text = "Spring length: 8";
-    header.height = "30px";
-    header.color = "white";
-    panel.addControl(header);
-
-    var slider = new BABYLON.GUI.Slider();
-    slider.minimum = 5;
-    slider.maximum = 10;
-    slider.value = 8;
-    slider.height = "20px";
-    slider.width = "200px";
-    slider.onValueChangedObservable.add(function(value) {
-      header.text = "Spring length: " + value.toFixed(2);
-      if (springJoing) {
-        springJoing.physicsJoint.restLength = value;
-      }
-    });
-    panel.addControl(slider);
-
-
-    var springJoing = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
-      // length: 8,
-      length: slider.value,
-      stiffness: 10,
-      damping: 0.5
-    });
-    sphere.physicsImpostor.addJoint(sphere2.physicsImpostor, springJoing);
-    sphere.position.y = 10;
-
     document.getElementById("add_sphere").addEventListener("click",function () {
       // Our built-in 'sphere' shape. Params: name, subdivs, size, scene
       var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
       sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
       // Move the sphere upward 1/2 its height
+      sphere.joints = [];
       bodies.push(sphere.physicsImpostor);
       sphere.position.y = 1;
     });
@@ -168,25 +137,77 @@
         slider.width = "200px";
         slider.onValueChangedObservable.add(function(value) {
           header.text = "Spring length: " + value.toFixed(2);
-          if (springJoing2) {
-            springJoing2.physicsJoint.restLength = value;
+          if (joint) {
+            joint.physicsJoint.restLength = value;
           }
         });
         panel.addControl(slider);
 
-        var springJoing2 = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
+        var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
           length: slider.value,
           stiffness: 10,
           damping: 0.5
         });
-        mesh1 = pickedMeshesInfo[0]
-        mesh2 = pickedMeshesInfo[1]
-        mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, springJoing2);
+
+        joints.push(joint);
+        mesh1 = pickedMeshesInfo[0];
+        mesh2 = pickedMeshesInfo[1];
+        mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
+
+        // Create cylinder
+        createCylinderForSpring(mesh1, mesh2, joint)
       }
-      // Need to return spring?
-      // Also, really need to figure out variable scoping.
       return
     });
+
+    function createCylinderForSpring(mesh1, mesh2, joint) {
+      var vstart = mesh1.position;
+      var vend = mesh2.position;
+      var distance = BABYLON.Vector3.Distance(vstart,vend);
+      var cyl_diameter = 0.5; // Ultimately, make this reflect the strength of spring
+      var number_of_sides = 36;
+      var cylinder = new BABYLON.Mesh.CreateCylinder(
+        "cylinder",
+        distance,
+        cyl_diameter,
+        cyl_diameter,
+        number_of_sides,
+        scene,
+        true); // Not sure how these arguements are assigned to the optional args of this function
+      cylinder.material = cylinderMat;
+      cylinder.start_mesh = mesh1;
+      cylinder.end_mesh = mesh2;
+      // This is to keep track of current orientation.
+      cylinder.start_coord = cylinder.position.subtract(new BABYLON.Vector3(0, distance/2, 0));
+      cylinder.end_coord = cylinder.position.add(new BABYLON.Vector3(0, distance/2, 0));
+      cylinder.joint = joint;
+      orientCylinder(cylinder);
+    }
+
+    function orientCylinder(cylinder) {
+      var vstart = cylinder.start_mesh.position;
+      var vend = cylinder.end_mesh.position;
+      var v1 = vend.subtract(vstart);
+      v1.normalize();
+
+      var v2 = cylinder.end_coord.subtract(cylinder.start_coord)
+      v2.normalize()
+      // console.log(v2)
+      // var v2 = new BABYLON.Vector3(0, 1, 0); // Axis this is created along
+      // Using cross we will have a vector perpendicular to both vectors
+      var axis = BABYLON.Vector3.Cross(v1, v2);
+      axis.normalize();
+
+      var angle = BABYLON.Vector3.Dot(v1, v2);
+
+      // Then using axis rotation
+      cylinder.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, -Math.PI / 2 + angle);
+      cylinder.position = cylinder.start_mesh.position.add(cylinder.end_mesh.position).scale(0.5)
+
+      // Update cylinder end points
+      cylinder.start_coord = cylinder.start_mesh.position
+      cylinder.end_coord = cylinder.end_mesh.position
+    }
 
     // https://www.babylonjs.com/demos/dragndrop/dragdrop.js
     var getGroundPosition = function (evt) {
@@ -295,7 +316,9 @@
       // Add friction
       // http://www.babylonjs-playground.com/#OJVVA#3
       // Need to add more things to this list.
-      var bodies = [sphere.physicsImpostor, sphere2.physicsImpostor];
+      var bodies = [];
+      var cylinders = [];
+      var joints = [];
       var timer = 0;
       scene.registerBeforeRender(function () {
         // Add function to update all cylinders for springs.
