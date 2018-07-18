@@ -41,6 +41,7 @@
 <body>
   <button id="add_sphere" style="position: absolute; right: 10px; top: 100px;">Add sphere</button>
   <button id="add_spring" style="position: absolute; right: 10px; top: 120px;">Add spring</button>
+  <button id="delete" style="position: absolute; right: 10px; top: 140px;">Delete</button>
 
 
   <canvas id="renderCanvas" touch-action="none"></canvas> //touch-action="none" for best results from PEP
@@ -180,12 +181,22 @@
           things_to_delete.add(mesh);
           // Add Sphere physicsImpostor
           if (mesh.physicsImpostor) {
+            // Remove from bodies array
+            if (!things_to_delete.has(mesh.physicsImpostor)){
+              bodyIndex = bodies.indexOf(mesh.physicsImpostor);
+              bodies.splice(bodyIndex, 1);
+            }
             things_to_delete.add(mesh.physicsImpostor);
           }
           if (mesh.joints) {
             mesh.joints.forEach(function (joint){
-              // Add SpringJoint
-              things_to_delete.add(joint);
+              // Remove joint from joints array
+              if (!things_to_delete.has(joint)){
+                jointIndex = joints.indexOf(joint);
+                joints.splice(jointIndex, 1);
+                // Add SpringJoint
+                things_to_delete.add(joint);
+              }
               // Add Cylinder
               things_to_delete.add(joint.cylinder);
             });
@@ -193,14 +204,33 @@
         }
         if (mesh.cylinder){
           things_to_delete.add(mesh);
-          things_to_delete.add(mesh.joint);
+          // Delete joint
+          if (!things_to_delete.has(mesh.joint)){
+            jointIndex = joints.indexOf(mesh.joint);
+            joints.splice(jointIndex, 1);
+            things_to_delete.add(mesh.joint);
+          }
         }
       });
-      return
+      things_to_delete.forEach(function (element) {
+        try {
+          element.dispose()
+        } catch (e) {
+          // console.log(element)
+        } finally {
+          scene.getPhysicsEngine().removeJoint(element)
+        }
+      });
+      // Clear pickedMeshesInfo
+      for (var i = 0; i < pickedMeshesInfo.length; i++) {
+        hl.removeMesh(pickedMeshesInfo[i]);
+      }
+      pickedMeshesInfo.length = 0;
     };
 
     document.getElementById("add_sphere").addEventListener("click", AddSphere);
     document.getElementById("add_spring").addEventListener("click", AddSpring);
+    document.getElementById("delete").addEventListener("click", DeleteMeshesJointsAndImposters);
 
     function createCylinderForSpring(joint) {
       var vstart = joint.start_mesh.position;
