@@ -96,6 +96,9 @@
 
     // No gravity please. :)
     scene.enablePhysics(new BABYLON.Vector3(0, 0, 0));
+    var bodies = [];
+    var joints = [];
+    var pickedMeshesInfo = [];
 
     // Slider https://www.babylonjs-playground.com/#U9AC0N#1
     var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -106,17 +109,18 @@
     panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
     advancedTexture.addControl(panel);
 
-    document.getElementById("add_sphere").addEventListener("click",function () {
-      // Our built-in 'sphere' shape. Params: name, subdivs, size, scene
+    function AddSphere() {
       var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
       sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
       // Move the sphere upward 1/2 its height
       sphere.joints = [];
       bodies.push(sphere.physicsImpostor);
       sphere.position.y = 1;
-    });
+      // Add this to identify mesh later
+      sphere.sphere = true;
+    }
 
-    document.getElementById("add_spring").addEventListener("click",function (){
+    function AddSpring() {
       // First check if there are two bodies selected
       // Add cylinder and
       // Check that pickedMeshesInfo has two sphere elements
@@ -152,15 +156,51 @@
         joints.push(joint);
         mesh1 = pickedMeshesInfo[0];
         mesh2 = pickedMeshesInfo[1];
+        mesh1.joints.push(joint);
+        mesh2.joints.push(joint);
         joint.start_mesh = mesh1
         joint.end_mesh = mesh2
+        // For ease of deleting things
+        joint.slider = slider
         mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
         console.log(joint.start_mesh.position)
         // Create cylinder
         createCylinderForSpring(joint)
       }
       return
-    });
+    }
+
+    function DeleteMeshesJointsAndImposters() {
+      // First construct set of objects that need to be deleted
+      var things_to_delete = new Set([]);
+      pickedMeshesInfo.forEach(function (mesh) {
+        // Cylinders and Spheres can be added to list
+        if (mesh.sphere){
+          // Add Sphere
+          things_to_delete.add(mesh);
+          // Add Sphere physicsImpostor
+          if (mesh.physicsImpostor) {
+            things_to_delete.add(mesh.physicsImpostor);
+          }
+          if (mesh.joints) {
+            mesh.joints.forEach(function (joint){
+              // Add SpringJoint
+              things_to_delete.add(joint);
+              // Add Cylinder
+              things_to_delete.add(joint.cylinder);
+            });
+          }
+        }
+        if (mesh.cylinder){
+          things_to_delete.add(mesh);
+          things_to_delete.add(mesh.joint);
+        }
+      });
+      return
+    };
+
+    document.getElementById("add_sphere").addEventListener("click", AddSphere);
+    document.getElementById("add_spring").addEventListener("click", AddSpring);
 
     function createCylinderForSpring(joint) {
       var vstart = joint.start_mesh.position;
@@ -173,10 +213,10 @@
       var cylinder = new BABYLON.MeshBuilder.CreateTube(
         "cylinder",
         {path : path,
-         radius: cyl_diameter/2.0,
-         updatable: true
-       },
-       scene
+          radius: cyl_diameter/2.0,
+          updatable: true
+        },
+        scene
       )
       cylinder.isPickable = false;
       cylinder.material = cylinderMat;
@@ -184,6 +224,8 @@
       cylinder.end_mesh = mesh2;
 
       cylinder.joint = joint;
+      // Add this for ease of identifying later
+      cylinder.cylinder = true;
       joint.cylinder = cylinder;
     }
 
@@ -210,7 +252,6 @@
       return null;
     }
 
-    var pickedMeshesInfo = [];
     var onPointerDown = function (evt) {
       if (evt.button !== 0) {
         return;
@@ -308,8 +349,6 @@
       // Add friction
       // http://www.babylonjs-playground.com/#OJVVA#3
       // Need to add more things to this list.
-      var bodies = [];
-      var joints = [];
       var timer = 0;
 
       scene.registerBeforeRender(function () {
@@ -333,6 +372,7 @@
       });
 
       return scene;
+
     };
 
     /******* End of the create scene function ******/
