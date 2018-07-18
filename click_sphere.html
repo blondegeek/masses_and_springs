@@ -164,7 +164,6 @@
         // For ease of deleting things
         joint.slider = slider
         mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
-        console.log(joint.start_mesh.position)
         // Create cylinder
         createCylinderForSpring(joint)
       }
@@ -216,7 +215,6 @@
         try {
           element.dispose()
         } catch (e) {
-          // console.log(element)
         } finally {
           scene.getPhysicsEngine().removeJoint(element)
         }
@@ -227,6 +225,8 @@
       }
       pickedMeshesInfo.length = 0;
     };
+
+
 
     document.getElementById("add_sphere").addEventListener("click", AddSphere);
     document.getElementById("add_spring").addEventListener("click", AddSpring);
@@ -239,7 +239,6 @@
       var cyl_diameter = 0.5; // Ultimately, make this reflect the strength of spring
       var number_of_sides = 36;
 
-      console.log(path)
       var cylinder = new BABYLON.MeshBuilder.CreateTube(
         "cylinder",
         {path : path,
@@ -386,12 +385,10 @@
           var objVelocity = b.getLinearVelocity()
           var velocityVector = Object.keys(objVelocity).map(function(key) {return objVelocity[key];});
           if (math.norm(velocityVector) > 0.0) {
-            // console.log(math.norm(velocityVector))
             var frictionStrength = 1.05
             b.setLinearVelocity(new BABYLON.Vector3(b.getLinearVelocity().x / frictionStrength,
             b.getLinearVelocity().y / frictionStrength,
             b.getLinearVelocity().z / frictionStrength));
-            // console.log(b.getLinearVelocity())
           }
         });
         // Add function to update all cylinders for springs.
@@ -400,6 +397,21 @@
           cylinder.isPickable = false;
         });
       });
+
+      scene.actionManager = new BABYLON.ActionManager(scene);
+      scene.actionManager.registerAction(
+        new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, (evt) => {
+          if (evt.sourceEvent.key == "s") {
+            return AddSphere();
+          }
+          if (evt.sourceEvent.key == "w") {
+            return AddSpring();
+          }
+          if (evt.sourceEvent.key == "d") {
+            return DeleteMeshesJointsAndImposters();
+          }
+        }))
+
 
       return scene;
 
