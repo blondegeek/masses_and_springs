@@ -85,7 +85,8 @@
 
     var cylinderMat = new BABYLON.StandardMaterial("cylinder_mat", scene);
     cylinderMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-    cylinderMat.alpha = 0.25;
+    // Highlight doesn't work on transparent materials.
+    //cylinderMat.alpha = 0.25;
 
     // Ground
     var ground = BABYLON.Mesh.CreateGround("ground", 1000, 1000, 1, scene, false);
@@ -100,6 +101,7 @@
     var bodies = [];
     var joints = [];
     var pickedMeshesInfo = [];
+    var pickedSpringsInfo = [];
 
     // Slider https://www.babylonjs-playground.com/#U9AC0N#1
     var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -132,7 +134,7 @@
         header.text = "Spring length: 8";
         header.height = "30px";
         header.color = "white";
-        panel.addControl(header);
+        header.isVisible = false;
 
         var slider = new BABYLON.GUI.Slider();
         slider.minimum = 5;
@@ -146,7 +148,7 @@
             joint.physicsJoint.restLength = value;
           }
         });
-        panel.addControl(slider);
+        slider.isVisible = false;
 
         var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
           length: slider.value,
@@ -163,6 +165,7 @@
         joint.end_mesh = mesh2
         // For ease of deleting things
         joint.slider = slider
+        joint.header = header
         mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
         // Create cylinder
         createCylinderForSpring(joint)
@@ -247,7 +250,7 @@
         },
         scene
       )
-      cylinder.isPickable = false;
+      // cylinder.isPickable = false;
       cylinder.material = cylinderMat;
       cylinder.start_mesh = mesh1;
       cylinder.end_mesh = mesh2;
@@ -282,25 +285,38 @@
     }
 
     var onPointerDown = function (evt) {
+
+      // Add way to select springs
       if (evt.button !== 0) {
         return;
       }
-      if (event.ctrlKey) {
+
+      if (event.ctrlKey && event.shiftKey) {
+        // Remove Meshes from highlight layer
+        for (var i = 0; i < pickedSpringsInfo.length; i++) {
+          hl.removeMesh(pickedSpringsInfo[i]);
+          panel.removeControl(pickedSpringsInfo[i].joint.header);
+          panel.removeControl(pickedSpringsInfo[i].joint.header);
+          pickedSpringsInfo[i].joint.header.isVisible = false;
+          pickedSpringsInfo[i].joint.slider.isVisible = false;
+        }
+        pickedSpringsInfo.length = 0
+      } else if (event.ctrlKey) {
         // Remove Meshes from highlight layer
         for (var i = 0; i < pickedMeshesInfo.length; i++) {
           hl.removeMesh(pickedMeshesInfo[i]);
         }
         pickedMeshesInfo.length = 0;
-      }
-
-      // http://www.babylonjs-playground.com/#SWSKU#6
-      if (event.altKey) {
+      } else if (event.altKey) {
+        // http://www.babylonjs-playground.com/#SWSKU#6
         // check if we are under a mesh
         var pickInfo = scene.pick(scene.pointerX, scene.pointerY);
         if (pickInfo.hit) {
-          pickedMeshesInfo.push(pickInfo.pickedMesh);
-          // Add mesh to highlight layer
-          hl.addMesh(pickInfo.pickedMesh, BABYLON.Color3.Green());
+          if (pickInfo.pickedMesh.sphere){
+            pickedMeshesInfo.push(pickInfo.pickedMesh);
+            // Add mesh to highlight layer
+            hl.addMesh(pickInfo.pickedMesh, BABYLON.Color3.Green());
+          }
           startingPoint = getGroundPosition();
 
           if (startingPoint) { // we need to disconnect camera from canvas
@@ -309,7 +325,24 @@
             }, 0);
           }
         }
+      } else if (event.shiftKey){
+        // check if we are under a mesh
+        var pickInfo = scene.pick(scene.pointerX, scene.pointerY);
+        if (pickInfo.hit) {
+          if (pickInfo.pickedMesh.cylinder){
+            pickedSpringsInfo.push(pickInfo.pickedMesh);
+            // Add mesh to highlight layer
+            // This isn't working for some reason!!! TODO
+            cylinder = pickInfo.pickedMesh;
+            hl.addMesh(cylinder, BABYLON.Color3.Red());
+            cylinder.joint.header.isVisible = true;
+            cylinder.joint.slider.isVisible = true;
+            panel.addControl(cylinder.joint.header);
+            panel.addControl(cylinder.joint.slider);
+          }
+        }
       }
+
       else{
 
         // check if we are under a mesh
@@ -318,7 +351,8 @@
           currentMesh = pickInfo.pickedMesh;
           // Add this to make sure we are not moving isPickable == false meshes
           // Does this create a problem with ground?
-          if (currentMesh.isPickable) {
+          // Make sure that currentMesh is a sphere rather than a spring
+          if (currentMesh.sphere) {
             startingPoint = getGroundPosition(evt);
           }
           if (startingPoint) { // we need to disconnect camera from canvas
@@ -394,7 +428,7 @@
         // Add function to update all cylinders for springs.
         joints.forEach(function (joint) {
           cylinder = updateCylinder(joint.cylinder)
-          cylinder.isPickable = false;
+          // cylinder.isPickable = false;
         });
       });
 
@@ -410,7 +444,7 @@
           if (evt.sourceEvent.key == "d") {
             return DeleteMeshesJointsAndImposters();
           }
-        }))
+        }));
 
 
       return scene;
