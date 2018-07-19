@@ -196,7 +196,8 @@
               if (!things_to_delete.has(joint)){
                 jointIndex = joints.indexOf(joint);
                 joints.splice(jointIndex, 1);
-                // Add SpringJoint
+                joint.header.dispose()
+                joint.slider.dispose()
                 things_to_delete.add(joint);
               }
               // Add Cylinder
@@ -204,12 +205,16 @@
             });
           }
         }
+      });
+      pickedSpringsInfo.forEach(function (mesh) {
         if (mesh.cylinder){
           things_to_delete.add(mesh);
           // Delete joint
           if (!things_to_delete.has(mesh.joint)){
             jointIndex = joints.indexOf(mesh.joint);
             joints.splice(jointIndex, 1);
+            mesh.joint.header.dispose()
+            mesh.joint.slider.dispose()
             things_to_delete.add(mesh.joint);
           }
         }
@@ -227,6 +232,11 @@
         hl.removeMesh(pickedMeshesInfo[i]);
       }
       pickedMeshesInfo.length = 0;
+      // Note this does not remove headers and sliders
+      for (var i = 0; i < pickedSpringsInfo.length; i++) {
+        hl.removeMesh(pickedSpringsInfo[i]);
+      }
+      pickedSpringsInfo.length = 0;
     };
 
 
