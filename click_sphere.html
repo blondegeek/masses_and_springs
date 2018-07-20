@@ -371,17 +371,15 @@
         newGroup.slider.joints.push(joint);
       });
       // newSlider.joints = newGroup;
-      console.log(newGroup);
       newGroup.forEach(function (joint) {
         joint.slider = newSlider;
         joint.header = newHeader;
       });
 
-      panel.addControl(newControl.header);
-      panel.addControl(newControl.slider);
       newControl.header.isVisible = true;
       newControl.slider.isVisible = true;
-
+      panel.addControl(newControl.header);
+      panel.addControl(newControl.slider);
     };
 
     // document.getElementById("add_sphere").addEventListener("click", AddSphere);
@@ -449,7 +447,7 @@
         for (var i = 0; i < pickedSpringsInfo.length; i++) {
           hl.removeMesh(pickedSpringsInfo[i]);
           panel.removeControl(pickedSpringsInfo[i].joint.header);
-          panel.removeControl(pickedSpringsInfo[i].joint.header);
+          panel.removeControl(pickedSpringsInfo[i].joint.slider);
           pickedSpringsInfo[i].joint.header.isVisible = false;
           pickedSpringsInfo[i].joint.slider.isVisible = false;
         }
