@@ -98,10 +98,15 @@
 
     // No gravity please. :)
     scene.enablePhysics(new BABYLON.Vector3(0, 0, 0));
+
+    var defaultRestLength = 5;
+
     var bodies = [];
     var joints = [];
     var pickedMeshesInfo = [];
     var pickedSpringsInfo = [];
+    var springGroups = [];
+    var groupedSpringsInfo = [];
 
     // Slider https://www.babylonjs-playground.com/#U9AC0N#1
     var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -115,29 +120,86 @@
 
     //Add Button controls
     var addSphereButton = new BABYLON.GUI.Button.CreateSimpleButton("add_sphere", "Add Sphere (s)");
-    addSphereButton.height = "20px";
+    addSphereButton.height = "30px";
     addSphereButton.width = "150px";
     addSphereButton.color = "white";
     addSphereButton.onPointerDownObservable.add(AddSphere);
     var addSpringButton = new BABYLON.GUI.Button.CreateSimpleButton("add_spring", "Add Spring (w)");
-    addSpringButton.height = "20px";
+    addSpringButton.height = "30px";
     addSpringButton.width = "150px";
     addSpringButton.color = "white";
     addSpringButton.onPointerDownObservable.add(AddSpring);
     var deleteButton = new BABYLON.GUI.Button.CreateSimpleButton("delete", "Delete (d)");
-    deleteButton.height = "20px";
+    deleteButton.height = "30px";
     deleteButton.width = "150px";
     deleteButton.color = "white";
     deleteButton.onPointerDownObservable.add(DeleteMeshesJointsAndImposters);
+    var groupSpringsButton = new BABYLON.GUI.Button.CreateSimpleButton("group_springs", "Group Springs (g)");
+    groupSpringsButton.height = "30px";
+    groupSpringsButton.width = "150px";
+    groupSpringsButton.color = "white";
+    groupSpringsButton.onPointerDownObservable.add(GroupSprings);
+    var breakSelectedSpringsButton = new BABYLON.GUI.Button.CreateSimpleButton("break_springs", "Break Selected Springs (b)");
+    breakSelectedSpringsButton.height = "60px";
+    breakSelectedSpringsButton.width = "150px";
+    breakSelectedSpringsButton.color = "white";
+    var breakAllSpringsButton = new BABYLON.GUI.Button.CreateSimpleButton("break_all_springs", "Break All Springs in Group (n)")
+    breakAllSpringsButton.height = "60px";
+    breakAllSpringsButton.width = "150px";
+    breakAllSpringsButton.color = "white";
+    var mergeSpheresButton = new BABYLON.GUI.Button.CreateSimpleButton("merge_spheres", "Merge Spheres (m)")
+    mergeSpheresButton.height = "60px";
+    mergeSpheresButton.width = "150px";
+    mergeSpheresButton.color = "white";
+
     buttonPanel.addControl(addSphereButton);
     buttonPanel.addControl(addSpringButton);
     buttonPanel.addControl(deleteButton);
+    buttonPanel.addControl(groupSpringsButton);
+    buttonPanel.addControl(breakSelectedSpringsButton);
+    buttonPanel.addControl(breakAllSpringsButton);
+    buttonPanel.addControl(mergeSpheresButton);
 
     var panel = new BABYLON.GUI.StackPanel();
     panel.width = "220px";
     panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
     panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
     advancedTexture.addControl(panel);
+
+    function CreateSpringControl() {
+      var header = new CreateHeader();
+      var slider = new CreateSlider(header);
+      return {header: header, slider: slider};
+    }
+
+    function CreateHeader(){
+        var header = new BABYLON.GUI.TextBlock();
+        header.text = "Spring length: " + defaultRestLength.toFixed(2);
+        header.height = "30px";
+        header.color = "white";
+        header.isVisible = false;
+        return header;
+    }
+
+    function CreateSlider(header) {
+        var slider = new BABYLON.GUI.Slider();
+        slider.minimum = 1;
+        slider.maximum = 10;
+        slider.value = defaultRestLength;
+        slider.height = "20px";
+        slider.width = "200px";
+        slider.joints = [];
+        slider.onValueChangedObservable.add(function(value) {
+          header.text = "Spring length: " + value.toFixed(2);
+          if (slider.joints.length > 0){
+            slider.joints.forEach(function (joint) {
+              joint.physicsJoint.restLength = value;
+            })
+          }
+        });
+        slider.isVisible = false;
+        return slider;
+    }
 
     function AddSphere() {
       var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
@@ -156,29 +218,11 @@
       // Check that pickedMeshesInfo has two sphere elements
 
       if (pickedMeshesInfo.length == 2){
-        var defaultRestLength = 5;
-
         // Add spring
-        var header = new BABYLON.GUI.TextBlock();
-        header.text = "Spring length: 8";
-        header.height = "30px";
-        header.color = "white";
-        header.isVisible = false;
 
-        var slider = new BABYLON.GUI.Slider();
-        slider.minimum = 1;
-        slider.maximum = 10;
-        slider.value = defaultRestLength;
-        slider.height = "20px";
-        slider.width = "200px";
-        slider.joints = [];
-        slider.onValueChangedObservable.add(function(value) {
-          header.text = "Spring length: " + value.toFixed(2);
-          if (joint) {
-            joint.physicsJoint.restLength = value;
-          }
-        });
-        slider.isVisible = false;
+        var control = new CreateSpringControl();
+        var header = control.header;
+        var slider = control.slider;
 
         var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
           length: defaultRestLength,
@@ -186,6 +230,9 @@
           damping: 0.5
         });
 
+        // Add joint to slider
+        slider.joints.push(joint);
+        // Add joint to joints array
         joints.push(joint);
         mesh1 = pickedMeshesInfo[0];
         mesh2 = pickedMeshesInfo[1];
@@ -269,7 +316,73 @@
       pickedSpringsInfo.length = 0;
     };
 
+    function GroupSprings() {
+      // No need to group
+      if (pickedSpringsInfo.length < 2) {
+        return;
+      }
+      // Check if spring/joint in group
+      var newGroup = new Set();
+      var groups_to_merge = new Set();
+      var singleton_springs = new Set();
+      pickedSpringsInfo.forEach(function (cylinder) {
+        if (cylinder.joint.group) {
+          groups_to_merge.add(cylinder.joint.group)
+        }
+        else {
+          singleton_springs.add(cylinder.joint)
+        }
+      });
+      // Already grouped
+      if (groups_to_merge.length == 1 && singleton_springs.length == 0) {
+        return;
+      }
 
+      // Fill all_joints
+      groups_to_merge.forEach(function (group) {
+        group.joints.forEach(function (joint) {
+          newGroup.add(joint);
+        });
+        // Remove group from groups list
+        var groupIndex = springGroups.indexOf(group);
+        groups.splice(groupIndex, 1);
+        // Delete group
+        delete group;
+      });
+
+      singleton_springs.forEach(function (joint) {
+        // Remove slider from control panel
+        panel.removeControl(joint.header);
+        panel.removeControl(joint.slider);
+        // Delete slider
+        joint.slider.dispose();
+        joint.header.dispose();
+        // Add joint to newGroup
+        newGroup.add(joint);
+        joint.group = newGroup;
+      });
+
+      var newControl = new CreateSpringControl();
+      var newSlider = newControl.slider;
+      var newHeader = newControl.header;
+      newGroup.slider = newSlider;
+      // Slider references object originally stored at slider.joints
+      newGroup.forEach(function (joint) {
+        newGroup.slider.joints.push(joint);
+      });
+      // newSlider.joints = newGroup;
+      console.log(newGroup);
+      newGroup.forEach(function (joint) {
+        joint.slider = newSlider;
+        joint.header = newHeader;
+      });
+
+      panel.addControl(newControl.header);
+      panel.addControl(newControl.slider);
+      newControl.header.isVisible = true;
+      newControl.slider.isVisible = true;
+
+    };
 
     // document.getElementById("add_sphere").addEventListener("click", AddSphere);
     // document.getElementById("add_spring").addEventListener("click", AddSpring);
