@@ -39,9 +39,9 @@
 </head>
 
 <body>
-  <button id="add_sphere" style="position: absolute; right: 10px; top: 100px;">Add sphere</button>
-  <button id="add_spring" style="position: absolute; right: 10px; top: 120px;">Add spring</button>
-  <button id="delete" style="position: absolute; right: 10px; top: 140px;">Delete</button>
+  <!-- <button id="add_sphere" style="position: absolute; right: 10px; top: 100px;">Add sphere</button> -->
+  <!-- <button id="add_spring" style="position: absolute; right: 10px; top: 120px;">Add spring</button> -->
+  <!-- <button id="delete" style="position: absolute; right: 10px; top: 140px;">Delete</button> -->
 
 
   <canvas id="renderCanvas" touch-action="none"></canvas> //touch-action="none" for best results from PEP
@@ -106,6 +106,33 @@
     // Slider https://www.babylonjs-playground.com/#U9AC0N#1
     var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
+    var buttonPanel = new BABYLON.GUI.StackPanel();
+    buttonPanel.width = "250px";
+    // buttonPanel.height = "100px";
+    buttonPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    buttonPanel.verticalAlignment =  BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    advancedTexture.addControl(buttonPanel);
+
+    //Add Button controls
+    var addSphereButton = new BABYLON.GUI.Button.CreateSimpleButton("add_sphere", "Add Sphere (s)");
+    addSphereButton.height = "20px";
+    addSphereButton.width = "150px";
+    addSphereButton.color = "white";
+    addSphereButton.onPointerDownObservable.add(AddSphere);
+    var addSpringButton = new BABYLON.GUI.Button.CreateSimpleButton("add_spring", "Add Spring (w)");
+    addSpringButton.height = "20px";
+    addSpringButton.width = "150px";
+    addSpringButton.color = "white";
+    addSpringButton.onPointerDownObservable.add(AddSpring);
+    var deleteButton = new BABYLON.GUI.Button.CreateSimpleButton("delete", "Delete (d)");
+    deleteButton.height = "20px";
+    deleteButton.width = "150px";
+    deleteButton.color = "white";
+    deleteButton.onPointerDownObservable.add(DeleteMeshesJointsAndImposters);
+    buttonPanel.addControl(addSphereButton);
+    buttonPanel.addControl(addSpringButton);
+    buttonPanel.addControl(deleteButton);
+
     var panel = new BABYLON.GUI.StackPanel();
     panel.width = "220px";
     panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
@@ -129,6 +156,8 @@
       // Check that pickedMeshesInfo has two sphere elements
 
       if (pickedMeshesInfo.length == 2){
+        var defaultRestLength = 5;
+
         // Add spring
         var header = new BABYLON.GUI.TextBlock();
         header.text = "Spring length: 8";
@@ -137,11 +166,12 @@
         header.isVisible = false;
 
         var slider = new BABYLON.GUI.Slider();
-        slider.minimum = 5;
+        slider.minimum = 1;
         slider.maximum = 10;
-        slider.value = 8;
+        slider.value = defaultRestLength;
         slider.height = "20px";
         slider.width = "200px";
+        slider.joints = [];
         slider.onValueChangedObservable.add(function(value) {
           header.text = "Spring length: " + value.toFixed(2);
           if (joint) {
@@ -151,7 +181,7 @@
         slider.isVisible = false;
 
         var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
-          length: slider.value,
+          length: defaultRestLength,
           stiffness: 10,
           damping: 0.5
         });
@@ -241,9 +271,9 @@
 
 
 
-    document.getElementById("add_sphere").addEventListener("click", AddSphere);
-    document.getElementById("add_spring").addEventListener("click", AddSpring);
-    document.getElementById("delete").addEventListener("click", DeleteMeshesJointsAndImposters);
+    // document.getElementById("add_sphere").addEventListener("click", AddSphere);
+    // document.getElementById("add_spring").addEventListener("click", AddSpring);
+    // document.getElementById("delete").addEventListener("click", DeleteMeshesJointsAndImposters);
 
     function createCylinderForSpring(joint) {
       var vstart = joint.start_mesh.position;
