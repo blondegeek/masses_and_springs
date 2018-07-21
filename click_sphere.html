@@ -206,7 +206,7 @@
       var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
       sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
       // Move the sphere upward 1/2 its height
-      sphere.joints = [];
+      sphere.joints = new Set();
       bodies.push(sphere.physicsImpostor);
       sphere.position.y = 1;
       // Add this to identify mesh later
@@ -239,8 +239,8 @@
 
         mesh1 = pickedMeshesInfo[0];
         mesh2 = pickedMeshesInfo[1];
-        mesh1.joints.push(joint);
-        mesh2.joints.push(joint);
+        mesh1.joints.add(joint);
+        mesh2.joints.add(joint);
         joint.start_mesh = mesh1
         joint.end_mesh = mesh2
 
@@ -256,7 +256,6 @@
       var things_to_delete = new Set();
       var groups_to_check = new Set();
       pickedMeshesInfo.forEach(function (mesh) {
-        // Cylinders and Spheres can be added to list
         if (mesh.sphere){
           // Add Sphere
           things_to_delete.add(mesh);
@@ -273,11 +272,11 @@
             mesh.joints.forEach(function (joint){
               // Remove joint from joints array
               if (!things_to_delete.has(joint)){
-                var jointIndex = joints.indexOf(joint);
-                joints.splice(jointIndex, 1);
                 groups_to_check.add(joint.group)
                 joint.group.delete(joint)
                 things_to_delete.add(joint);
+                joint.start_mesh.joints.delete(joint);
+                joint.end_mesh.joints.delete(joint);
               }
               // Add Cylinder
               things_to_delete.add(joint.cylinder);
@@ -290,19 +289,12 @@
           things_to_delete.add(mesh);
           // Delete joint
           if (!things_to_delete.has(mesh.joint)){
-            var jointIndex = joints.indexOf(mesh.joint);
-            joints.splice(jointIndex, 1);
-            if (!mesh.joint.group) {
-              // Need to remove from panel?
-              mesh.joint.group.header.dispose()
-              mesh.joint.group.slider.dispose()
-            }
-            else {
-              groups_to_check.add(mesh.joint.group);
-              mesh.joint.group.delete(mesh.joint);
-              console.log(mesh.joint.group);
-            }
+            groups_to_check.add(mesh.joint.group);
+            mesh.joint.group.delete(mesh.joint);
             things_to_delete.add(mesh.joint);
+            // Delete joint from mesh joint lists
+            mesh.joint.start_mesh.joints.delete(mesh.joint)
+            mesh.joint.end_mesh.joints.delete(mesh.joint)
           }
         }
       });
@@ -326,6 +318,7 @@
         if (still_there == 0) {
           console.log("group being removed")
           // Remove group
+          console.log(group)
           groupIndex = springGroups.indexOf(group);
           group.slider.dispose()
           group.header.dispose()
