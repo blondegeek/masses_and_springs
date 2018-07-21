@@ -166,11 +166,11 @@
     panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
     advancedTexture.addControl(panel);
 
-    function CreateSpringControl() {
+    function CreateSpringControl(group) {
       var header = new CreateHeader();
-      var slider = new CreateSlider(header);
+      var slider = new CreateSlider(header, group);
       return {header: header, slider: slider};
-    }
+    };
 
     function CreateHeader(){
         var header = new BABYLON.GUI.TextBlock();
@@ -181,17 +181,17 @@
         return header;
     }
 
-    function CreateSlider(header) {
+    function CreateSlider(header, group) {
         var slider = new BABYLON.GUI.Slider();
         slider.minimum = 1;
         slider.maximum = 10;
         slider.value = defaultRestLength;
         slider.height = "20px";
         slider.width = "200px";
-        slider.joints = [];
+        slider.joints = group;
         slider.onValueChangedObservable.add(function(value) {
           header.text = "Spring length: " + value.toFixed(2);
-          if (slider.joints.length > 0){
+          if (slider.joints.size > 0){
             slider.joints.forEach(function (joint) {
               joint.physicsJoint.restLength = value;
             })
@@ -220,9 +220,7 @@
       if (pickedMeshesInfo.length == 2){
         // Add spring
 
-        var control = new CreateSpringControl();
-        var header = control.header;
-        var slider = control.slider;
+        var newGroup = new Set();
 
         var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
           length: defaultRestLength,
@@ -230,19 +228,21 @@
           damping: 0.5
         });
 
-        // Add joint to slider
-        slider.joints.push(joint);
-        // Add joint to joints array
-        joints.push(joint);
+        springGroups.push(newGroup);
+        newGroup.add(joint);
+        joint.group = newGroup;
+
+        var control = new CreateSpringControl(newGroup);
+        newGroup.slider = control.slider;
+        newGroup.header = control.header;
+
         mesh1 = pickedMeshesInfo[0];
         mesh2 = pickedMeshesInfo[1];
         mesh1.joints.push(joint);
         mesh2.joints.push(joint);
         joint.start_mesh = mesh1
         joint.end_mesh = mesh2
-        // For ease of deleting things
-        joint.slider = slider
-        joint.header = header
+
         mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
         // Create cylinder
         createCylinderForSpring(joint)
@@ -252,7 +252,8 @@
 
     function DeleteMeshesJointsAndImposters() {
       // First construct set of objects that need to be deleted
-      var things_to_delete = new Set([]);
+      var things_to_delete = new Set();
+      var groups_to_check = new Set();
       pickedMeshesInfo.forEach(function (mesh) {
         // Cylinders and Spheres can be added to list
         if (mesh.sphere){
@@ -271,10 +272,16 @@
             mesh.joints.forEach(function (joint){
               // Remove joint from joints array
               if (!things_to_delete.has(joint)){
-                jointIndex = joints.indexOf(joint);
+                var jointIndex = joints.indexOf(joint);
                 joints.splice(jointIndex, 1);
-                joint.header.dispose()
-                joint.slider.dispose()
+                if (!joint.group) {
+                  joint.group.header.dispose()
+                  joint.group.slider.dispose()
+                }
+                else {
+                  groups_to_check.add(joint.group)
+                  joint.group.delete(joint)
+                }
                 things_to_delete.add(joint);
               }
               // Add Cylinder
@@ -288,10 +295,18 @@
           things_to_delete.add(mesh);
           // Delete joint
           if (!things_to_delete.has(mesh.joint)){
-            jointIndex = joints.indexOf(mesh.joint);
+            var jointIndex = joints.indexOf(mesh.joint);
             joints.splice(jointIndex, 1);
-            mesh.joint.header.dispose()
-            mesh.joint.slider.dispose()
+            if (!mesh.joint.group) {
+              // Need to remove from panel?
+              mesh.joint.group.header.dispose()
+              mesh.joint.group.slider.dispose()
+            }
+            else {
+              groups_to_check.add(mesh.joint.group);
+              mesh.joint.group.delete(mesh.joint);
+              console.log(mesh.joint.group);
+            }
             things_to_delete.add(mesh.joint);
           }
         }
@@ -304,6 +319,24 @@
           scene.getPhysicsEngine().removeJoint(element)
         }
       });
+      // Check if any joint groups need to be removed
+      groups_to_check.forEach(function (group) {
+        var still_there = 0;
+        group.forEach(function (joint) {
+          if (still_there > 0) { break; }
+          if (joints.indexOf(joint) > -1) {
+            still_there = still_there + 1;
+          }
+        })
+        if (still_there == 0) {
+          console.log("group being removed")
+          // Remove group
+          groupIndex = springGroups.indexOf(group);
+          group.slider.dispose()
+          group.header.dispose()
+        }
+      })
+
       // Clear pickedMeshesInfo
       for (var i = 0; i < pickedMeshesInfo.length; i++) {
         hl.removeMesh(pickedMeshesInfo[i]);
@@ -323,6 +356,7 @@
       }
       // Check if spring/joint in group
       var newGroup = new Set();
+      springGroups.push(newGroup);
       var groups_to_merge = new Set();
       var singleton_springs = new Set();
       pickedSpringsInfo.forEach(function (cylinder) {
@@ -339,42 +373,57 @@
       }
 
       // Fill all_joints
+      console.log(springGroups);
+
       groups_to_merge.forEach(function (group) {
-        group.joints.forEach(function (joint) {
+        group.forEach(function (joint) {
           newGroup.add(joint);
         });
         // Remove group from groups list
         var groupIndex = springGroups.indexOf(group);
-        groups.splice(groupIndex, 1);
+        // Remove slider from control panel
+        panel.removeControl(group.header);
+        panel.removeControl(group.slider);
+        // Delete slider
+        group.slider.dispose();
+        group.header.dispose();
+        // Remove group from springGroups
+        springGroups.splice(groupIndex, 1);
         // Delete group
         delete group;
       });
 
+      console.log(springGroups);
+
+      // REMOVE
       singleton_springs.forEach(function (joint) {
         // Remove slider from control panel
-        panel.removeControl(joint.header);
-        panel.removeControl(joint.slider);
+        panel.removeControl(joint.group.header);
+        panel.removeControl(joint.group.slider);
         // Delete slider
-        joint.slider.dispose();
-        joint.header.dispose();
+        joint.group.slider.dispose();
+        joint.group.header.dispose();
         // Add joint to newGroup
         newGroup.add(joint);
         joint.group = newGroup;
       });
 
-      var newControl = new CreateSpringControl();
-      var newSlider = newControl.slider;
-      var newHeader = newControl.header;
-      newGroup.slider = newSlider;
-      // Slider references object originally stored at slider.joints
       newGroup.forEach(function (joint) {
-        newGroup.slider.joints.push(joint);
+        joint.group = newGroup;
       });
-      // newSlider.joints = newGroup;
-      newGroup.forEach(function (joint) {
-        joint.slider = newSlider;
-        joint.header = newHeader;
-      });
+      var newControl = new CreateSpringControl(newGroup);
+      newGroup.slider = newControl.slider;
+      newGroup.header = newControl.header;
+
+      // // Slider references object originally stored at slider.joints
+      // newGroup.forEach(function (joint) {
+      //   newGroup.slider.joints.add(joint);
+      // });
+      // // newSlider.joints = newGroup;
+      // newGroup.forEach(function (joint) {
+      //   joint.group.slider = newSlider;
+      //   joint.group.header = newHeader;
+      // });
 
       newControl.header.isVisible = true;
       newControl.slider.isVisible = true;
@@ -446,10 +495,10 @@
         // Remove Meshes from highlight layer
         for (var i = 0; i < pickedSpringsInfo.length; i++) {
           hl.removeMesh(pickedSpringsInfo[i]);
-          panel.removeControl(pickedSpringsInfo[i].joint.header);
-          panel.removeControl(pickedSpringsInfo[i].joint.slider);
-          pickedSpringsInfo[i].joint.header.isVisible = false;
-          pickedSpringsInfo[i].joint.slider.isVisible = false;
+          panel.removeControl(pickedSpringsInfo[i].joint.group.header);
+          panel.removeControl(pickedSpringsInfo[i].joint.group.slider);
+          pickedSpringsInfo[i].joint.group.header.isVisible = false;
+          pickedSpringsInfo[i].joint.group.slider.isVisible = false;
         }
         pickedSpringsInfo.length = 0
       } else if (event.ctrlKey) {
@@ -486,10 +535,10 @@
             // This isn't working for some reason!!! TODO
             cylinder = pickInfo.pickedMesh;
             hl.addMesh(cylinder, BABYLON.Color3.Red());
-            cylinder.joint.header.isVisible = true;
-            cylinder.joint.slider.isVisible = true;
-            panel.addControl(cylinder.joint.header);
-            panel.addControl(cylinder.joint.slider);
+            cylinder.joint.group.header.isVisible = true;
+            cylinder.joint.group.slider.isVisible = true;
+            panel.addControl(cylinder.joint.group.header);
+            panel.addControl(cylinder.joint.group.slider);
           }
         }
       }
@@ -497,7 +546,9 @@
       else{
 
         // check if we are under a mesh
-        var pickInfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh !== ground; });
+        var pickInfo = scene.pick(scene.pointerX,
+                                  scene.pointerY,
+                                  function (mesh) { return mesh !== ground; });
         if (pickInfo.hit) {
           currentMesh = pickInfo.pickedMesh;
           // Add this to make sure we are not moving isPickable == false meshes
@@ -577,10 +628,15 @@
           }
         });
         // Add function to update all cylinders for springs.
-        joints.forEach(function (joint) {
-          cylinder = updateCylinder(joint.cylinder)
-          // cylinder.isPickable = false;
+        springGroups.forEach(function (group) {
+          group.forEach(function (joint) {
+            cylinder = updateCylinder(joint.cylinder);
+          });
         });
+        // joints.forEach(function (joint) {
+          // cylinder = updateCylinder(joint.cylinder)
+          // cylinder.isPickable = false;
+        // });
       });
 
       scene.actionManager = new BABYLON.ActionManager(scene);
@@ -594,6 +650,9 @@
           }
           if (evt.sourceEvent.key == "d") {
             return DeleteMeshesJointsAndImposters();
+          }
+          if (evt.sourceEvent.key == "g") {
+            return GroupSprings();
           }
         }));
 
