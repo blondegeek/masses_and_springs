@@ -275,14 +275,8 @@
               if (!things_to_delete.has(joint)){
                 var jointIndex = joints.indexOf(joint);
                 joints.splice(jointIndex, 1);
-                if (!joint.group) {
-                  joint.group.header.dispose()
-                  joint.group.slider.dispose()
-                }
-                else {
-                  groups_to_check.add(joint.group)
-                  joint.group.delete(joint)
-                }
+                groups_to_check.add(joint.group)
+                joint.group.delete(joint)
                 things_to_delete.add(joint);
               }
               // Add Cylinder
@@ -359,17 +353,11 @@
       var newGroup = new Set();
       springGroups.push(newGroup);
       var groups_to_merge = new Set();
-      var singleton_springs = new Set();
       pickedSpringsInfo.forEach(function (cylinder) {
-        if (cylinder.joint.group) {
-          groups_to_merge.add(cylinder.joint.group)
-        }
-        else {
-          singleton_springs.add(cylinder.joint)
-        }
+        groups_to_merge.add(cylinder.joint.group)
       });
       // Already grouped
-      if (groups_to_merge.length == 1 && singleton_springs.length == 0) {
+      if (groups_to_merge.length == 1) {
         return;
       }
 
@@ -396,35 +384,12 @@
 
       console.log(springGroups);
 
-      // REMOVE
-      singleton_springs.forEach(function (joint) {
-        // Remove slider from control panel
-        panel.removeControl(joint.group.header);
-        panel.removeControl(joint.group.slider);
-        // Delete slider
-        joint.group.slider.dispose();
-        joint.group.header.dispose();
-        // Add joint to newGroup
-        newGroup.add(joint);
-        joint.group = newGroup;
-      });
-
       newGroup.forEach(function (joint) {
         joint.group = newGroup;
       });
       var newControl = new CreateSpringControl(newGroup);
       newGroup.slider = newControl.slider;
       newGroup.header = newControl.header;
-
-      // // Slider references object originally stored at slider.joints
-      // newGroup.forEach(function (joint) {
-      //   newGroup.slider.joints.add(joint);
-      // });
-      // // newSlider.joints = newGroup;
-      // newGroup.forEach(function (joint) {
-      //   joint.group.slider = newSlider;
-      //   joint.group.header = newHeader;
-      // });
 
       newControl.header.isVisible = true;
       newControl.slider.isVisible = true;
