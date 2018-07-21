@@ -105,6 +105,7 @@
     var joints = [];
     var pickedMeshesInfo = [];
     var pickedSpringsInfo = [];
+    var groupOfPickedSpringsInfo = [];
     var springGroups = [];
     var groupedSpringsInfo = [];
 
@@ -323,11 +324,11 @@
       groups_to_check.forEach(function (group) {
         var still_there = 0;
         group.forEach(function (joint) {
-          if (still_there > 0) { break; }
+          // There isn't a pretty way to do breaks in forEach
           if (joints.indexOf(joint) > -1) {
             still_there = still_there + 1;
           }
-        })
+        });
         if (still_there == 0) {
           console.log("group being removed")
           // Remove group
@@ -500,7 +501,11 @@
           pickedSpringsInfo[i].joint.group.header.isVisible = false;
           pickedSpringsInfo[i].joint.group.slider.isVisible = false;
         }
-        pickedSpringsInfo.length = 0
+        for (var i = 0; i < groupOfPickedSpringsInfo.length; i++) {
+          hl.removeMesh(groupOfPickedSpringsInfo[i]);
+        }
+        pickedSpringsInfo.length = 0;
+        groupOfPickedSpringsInfo.length = 0;
       } else if (event.ctrlKey) {
         // Remove Meshes from highlight layer
         for (var i = 0; i < pickedMeshesInfo.length; i++) {
@@ -530,11 +535,24 @@
         var pickInfo = scene.pick(scene.pointerX, scene.pointerY);
         if (pickInfo.hit) {
           if (pickInfo.pickedMesh.cylinder){
+            // Should we check if it's already there?
             pickedSpringsInfo.push(pickInfo.pickedMesh);
+            // Remove from highlight layer if already there
+            cylinderIndex = groupOfPickedSpringsInfo.indexOf(pickInfo.pickedMesh)
+            if (cylinderIndex > -1){
+              groupOfPickedSpringsInfo.splice(cylinderIndex, 1);
+            }
             // Add mesh to highlight layer
-            // This isn't working for some reason!!! TODO
             cylinder = pickInfo.pickedMesh;
             hl.addMesh(cylinder, BABYLON.Color3.Red());
+            // Add other group members to highlight layer in yellow
+            cylinder.joint.group.forEach(function (joint) {
+              if (pickedSpringsInfo.indexOf(joint.cylinder) == -1){
+                hl.addMesh(joint.cylinder, BABYLON.Color3.Yellow());
+                groupOfPickedSpringsInfo.push(joint.cylinder);
+              }
+            })
+
             cylinder.joint.group.header.isVisible = true;
             cylinder.joint.group.slider.isVisible = true;
             panel.addControl(cylinder.joint.group.header);
