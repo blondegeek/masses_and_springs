@@ -342,6 +342,10 @@
         hl.removeMesh(pickedSpringsInfo[i]);
       }
       pickedSpringsInfo.length = 0;
+      for (var i = 0; i < groupOfPickedSpringsInfo.length; i++) {
+        hl.removeMesh(groupOfPickedSpringsInfo[i]);
+      }
+      groupOfPickedSpringsInfo.length = 0;
     };
 
     function GroupSprings() {
