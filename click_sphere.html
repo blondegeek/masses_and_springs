@@ -206,7 +206,8 @@
       var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
       sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
       // Move the sphere upward 1/2 its height
-      sphere.joints = new Set();
+      // sphere.joints = new Set();
+      sphere.joints = [];
       bodies.push(sphere.physicsImpostor);
       sphere.position.y = y;
       // Add this to identify mesh later
@@ -246,10 +247,33 @@
       joint.start_mesh = mesh1
       joint.end_mesh = mesh2
 
+<<<<<<< HEAD
       mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
       // Create cylinder
       createCylinderForSpring(joint)
 
+=======
+        mesh1 = pickedMeshesInfo[0];
+        mesh2 = pickedMeshesInfo[1];
+        // mesh1.joints.add(joint);
+        mesh1.joints.push(joint);
+        // mesh2.joints.add(joint);
+        mesh2.joints.push(joint);
+        joint.start_mesh = mesh1
+        joint.end_mesh = mesh2
+
+        mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
+        console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks.length);
+        console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks)
+        // Create cylinder
+        // var list_thing = mesh1.physicsImpostor._onAfterPhysicsStepCallbacks
+        // console.log(list_thing)
+        // console.log(list_thing.indexOf(joint))
+        // console.log(joint.physicsJoint)
+        // console.log(joint.physicsJoint == mesh1.physicsImpostor._onAfterPhysicsStepCallbacks[-1])
+        createCylinderForSpring(joint)
+      }
+>>>>>>> 6988a161d25b96fca814249ab362eecebb5e95c9
       return
     }
 
@@ -277,8 +301,9 @@
                 groups_to_check.add(joint.group)
                 joint.group.delete(joint)
                 things_to_delete.add(joint);
-                joint.start_mesh.joints.delete(joint);
-                joint.end_mesh.joints.delete(joint);
+                // Move to later.
+                // joint.start_mesh.joints.delete(joint);
+                // joint.end_mesh.joints.delete(joint);
               }
               // Add Cylinder
               things_to_delete.add(joint.cylinder);
@@ -294,18 +319,58 @@
             groups_to_check.add(mesh.joint.group);
             mesh.joint.group.delete(mesh.joint);
             things_to_delete.add(mesh.joint);
+            // Move to later.
             // Delete joint from mesh joint lists
-            mesh.joint.start_mesh.joints.delete(mesh.joint)
-            mesh.joint.end_mesh.joints.delete(mesh.joint)
+            // mesh.joint.start_mesh.joints.delete(mesh.joint)
+            // mesh.joint.end_mesh.joints.delete(mesh.joint)
           }
         }
       });
+      // console.log(things_to_delete)
+      console.log(things_to_delete)
       things_to_delete.forEach(function (element) {
+        console.log(element)
         try {
           element.dispose()
         } catch (e) {
-        } finally {
-          scene.getPhysicsEngine().removeJoint(element)
+          start_mesh = element.start_mesh;
+          end_mesh = element.end_mesh;
+          var joint_counter = 0;
+          try {
+            var start_mesh_joints_length = start_mesh.joints.length
+            for (i = 0; i < start_mesh_joints_length; i++){
+              if (start_mesh.joints[i] == element) {
+                break;
+              }
+              else {
+                if (start_mesh.joints[i].start_mesh == start_mesh) {
+                  joint_counter = joint_counter + 1;
+                }
+              }
+            }
+            // Delete constraint
+            console.log(start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.length)
+            var try1 = start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.splice(joint_counter, 1)
+            console.log(joint_counter, try1)
+            start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks = start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.splice(joint_counter, 1);
+          } catch (e) {}
+          try {
+            // Remove joint from joints array of start_mesh.
+            element_index_start = start_mesh.joints.indexOf(element)
+            if (element_index_start > -1) {
+              start_mesh.joints = start_mesh.joints.splice(element_index_start, 1);
+            }
+          } catch (e) {}
+          try {
+            // Remove joint from joints array of end_mesh.
+            element_index_end = end_mesh.joints.indexOf(element)
+            if (element_index_end > -1) {
+              end_mesh.joints = end_mesh.joints.splice(element_index_end, 1);
+            }
+          } catch (e) {}
+          // If mesh.joints was a Set();
+          // start_mesh.joints.delete(element);
+          // end_mesh.joints.delete(element);
         }
       });
       // Check if any joint groups need to be removed
