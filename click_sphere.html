@@ -202,52 +202,54 @@
         return slider;
     }
 
-    function AddSphere() {
+    function AddSphere(x=0,y=1,z=0) {
       var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
       sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
       // Move the sphere upward 1/2 its height
       sphere.joints = new Set();
       bodies.push(sphere.physicsImpostor);
-      sphere.position.y = 1;
+      sphere.position.y = y;
       // Add this to identify mesh later
       sphere.sphere = true;
     }
 
-    function AddSpring() {
+    function AddSpring(mesh1=null, mesh2=null, length=defaultRestLength, stiffness=10.0, damping=0.5) {
       // First check if there are two bodies selected
       // Add cylinder and
       // Check that pickedMeshesInfo has two sphere elements
+      if (mesh1===null ||  mesh2===null ){
+        if (pickedMeshesInfo.length == 2){
+          // Add spring
 
-      if (pickedMeshesInfo.length == 2){
-        // Add spring
+          var newGroup = new Set();
 
-        var newGroup = new Set();
+          var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
+            length: length,
+            stiffness: stiffness,
+            damping: damping
+          });
 
-        var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
-          length: defaultRestLength,
-          stiffness: 10,
-          damping: 0.5
-        });
+          springGroups.push(newGroup);
+          newGroup.add(joint);
+          joint.group = newGroup;
 
-        springGroups.push(newGroup);
-        newGroup.add(joint);
-        joint.group = newGroup;
+          var control = new CreateSpringControl(newGroup);
+          newGroup.slider = control.slider;
+          newGroup.header = control.header;
 
-        var control = new CreateSpringControl(newGroup);
-        newGroup.slider = control.slider;
-        newGroup.header = control.header;
-
-        mesh1 = pickedMeshesInfo[0];
-        mesh2 = pickedMeshesInfo[1];
-        mesh1.joints.add(joint);
-        mesh2.joints.add(joint);
-        joint.start_mesh = mesh1
-        joint.end_mesh = mesh2
-
-        mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
-        // Create cylinder
-        createCylinderForSpring(joint)
+          mesh1 = pickedMeshesInfo[0];
+          mesh2 = pickedMeshesInfo[1];
+        }
       }
+      mesh1.joints.add(joint);
+      mesh2.joints.add(joint);
+      joint.start_mesh = mesh1
+      joint.end_mesh = mesh2
+
+      mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
+      // Create cylinder
+      createCylinderForSpring(joint)
+
       return
     }
 
@@ -415,8 +417,10 @@
       )
       // cylinder.isPickable = false;
       cylinder.material = cylinderMat;
-      cylinder.start_mesh = mesh1;
-      cylinder.end_mesh = mesh2;
+      // cylinder.start_mesh = mesh1;
+      cylinder.start_mesh = joint.start_mesh;
+      // cylinder.end_mesh = mesh2;
+      cylinder.end_mesh = joint.end_mesh;
 
       cylinder.joint = joint;
       // Add this for ease of identifying later
