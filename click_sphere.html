@@ -247,33 +247,10 @@
       joint.start_mesh = mesh1
       joint.end_mesh = mesh2
 
-<<<<<<< HEAD
       mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
       // Create cylinder
       createCylinderForSpring(joint)
 
-=======
-        mesh1 = pickedMeshesInfo[0];
-        mesh2 = pickedMeshesInfo[1];
-        // mesh1.joints.add(joint);
-        mesh1.joints.push(joint);
-        // mesh2.joints.add(joint);
-        mesh2.joints.push(joint);
-        joint.start_mesh = mesh1
-        joint.end_mesh = mesh2
-
-        mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
-        console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks.length);
-        console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks)
-        // Create cylinder
-        // var list_thing = mesh1.physicsImpostor._onAfterPhysicsStepCallbacks
-        // console.log(list_thing)
-        // console.log(list_thing.indexOf(joint))
-        // console.log(joint.physicsJoint)
-        // console.log(joint.physicsJoint == mesh1.physicsImpostor._onAfterPhysicsStepCallbacks[-1])
-        createCylinderForSpring(joint)
-      }
->>>>>>> 6988a161d25b96fca814249ab362eecebb5e95c9
       return
     }
 
