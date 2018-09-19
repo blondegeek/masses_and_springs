@@ -36,7 +36,8 @@
   <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
   <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
   <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
-  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <!-- This allows file:// protocol to load JSON files-->
+  <script src="https://d3js.org/d3.v4.min.js"></script>
 </head>
 
 <body>
@@ -65,6 +66,30 @@
   // })
 
   /******* Add the create scene function ******/
+
+  // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+  function getParameterByName(name, url) {
+      if (!url) url = window.location.href;
+      name = name.replace(/[\[\]]/g, "\\$&");
+      var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+          results = regex.exec(url);
+      if (!results) return null;
+      if (!results[2]) return '';
+      return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  function getEdges(nodes) {
+    nodes.sort()
+    var edges = []
+    var iterator1 = nodes.entries()
+    for (let node1 of iterator1) {
+      var iterator2 = nodes.slice(node1[0]+1).entries()
+      for (let node2 of iterator2){
+        edges.push([node1[1], node2[1]]);
+      }
+    }
+    return edges
+  }
 
   var createScene = function () {
 
@@ -205,16 +230,19 @@
         return slider;
     }
 
-    function AddSphere(x=0,y=1,z=0) {
-      var sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
+    function AddSphere(name="sphere",x=0,y=1,z=0) {
+      var sphere = BABYLON.Mesh.CreateSphere(name, 16, 2, scene);
       sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9, friction: 10}, scene);
       // Move the sphere upward 1/2 its height
       // sphere.joints = new Set();
       sphere.joints = [];
       bodies.push(sphere.physicsImpostor);
+      sphere.position.x = x;
       sphere.position.y = y;
+      sphere.position.z = z;
       // Add this to identify mesh later
       sphere.sphere = true;
+      return sphere
     }
 
     function AddSpring(mesh1=null, mesh2=null, length=defaultRestLength, stiffness=10.0, damping=0.5) {
@@ -244,7 +272,25 @@
           mesh1 = pickedMeshesInfo[0];
           mesh2 = pickedMeshesInfo[1];
         }
+      } else {
+        // If mesh1 and mesh2 are not null
+        var newGroup = new Set();
+
+        var joint = new BABYLON.PhysicsJoint(BABYLON.PhysicsJoint.SpringJoint, {
+          length: length,
+          stiffness: stiffness,
+          damping: damping
+        });
+
+        springGroups.push(newGroup);
+        newGroup.add(joint);
+        joint.group = newGroup;
+
+        var control = new CreateSpringControl(newGroup);
+        newGroup.slider = control.slider;
+        newGroup.header = control.header;
       }
+
       joint.start_mesh = mesh1
       joint.end_mesh = mesh2
 
@@ -254,20 +300,38 @@
       joint.end_mesh = mesh2
 
       mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
-      console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks.length);
-      console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks)
+      // console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks.length);
+      // console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks)
       // Create cylinder
-      // var list_thing = mesh1.physicsImpostor._onAfterPhysicsStepCallbacks
-      // console.log(list_thing)
-      // console.log(list_thing.indexOf(joint))
-      // console.log(joint.physicsJoint)
-      // console.log(joint.physicsJoint == mesh1.physicsImpostor._onAfterPhysicsStepCallbacks[-1])
       createCylinderForSpring(joint)
-      return
+      return joint;
     }
 
-    function CreateFromFile(data) {
-
+    function CreateFromFile() {
+      d3.json(getParameterByName("json"), function(data) {
+        var nodes = data["nodes"]
+        var edges = data["edges"]
+        var node_keys = Object.keys(nodes)
+        var edge_keys = getEdges(node_keys)
+        // Create Spheres
+        for (var key in nodes) {
+          nodes[key].sphere = AddSphere(
+            key,
+            parseFloat(nodes[key].x),
+            parseFloat(nodes[key].y),
+            parseFloat(nodes[key].z))
+        }
+        // Create Springs
+        for (var key in edge_keys) {
+          var mesh1 = nodes[edge_keys[key][0]].sphere
+          var mesh2 = nodes[edge_keys[key][1]].sphere
+          var edge_key = "("+edge_keys[key].join(",")+")"
+          var length = edges[edge_key].length
+          var stiffness = edges[edge_key].stiffness
+          var damping = edges[edge_key].damping
+          AddSpring(mesh1, mesh2, length, stiffness, damping)
+        }
+      })
     }
 
     function DeleteMeshesJointsAndImposters() {
@@ -695,6 +759,9 @@
           }
           if (evt.sourceEvent.key == "g") {
             return GroupSprings();
+          }
+          if (evt.sourceEvent.key == "f") {
+            return CreateFromFile();
           }
         }));
 
