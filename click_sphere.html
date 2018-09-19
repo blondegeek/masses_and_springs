@@ -36,6 +36,7 @@
   <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
   <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
   <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
 </head>
 
 <body>
@@ -108,6 +109,8 @@
     var groupOfPickedSpringsInfo = [];
     var springGroups = [];
     var groupedSpringsInfo = [];
+
+    // Check for url for filename and get json file
 
     // Slider https://www.babylonjs-playground.com/#U9AC0N#1
     var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -242,16 +245,29 @@
           mesh2 = pickedMeshesInfo[1];
         }
       }
-      mesh1.joints.add(joint);
-      mesh2.joints.add(joint);
+      joint.start_mesh = mesh1
+      joint.end_mesh = mesh2
+
+      mesh1.joints.push(joint);
+      mesh2.joints.push(joint);
       joint.start_mesh = mesh1
       joint.end_mesh = mesh2
 
       mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
+      console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks.length);
+      console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks)
       // Create cylinder
+      // var list_thing = mesh1.physicsImpostor._onAfterPhysicsStepCallbacks
+      // console.log(list_thing)
+      // console.log(list_thing.indexOf(joint))
+      // console.log(joint.physicsJoint)
+      // console.log(joint.physicsJoint == mesh1.physicsImpostor._onAfterPhysicsStepCallbacks[-1])
       createCylinderForSpring(joint)
-
       return
+    }
+
+    function CreateFromFile(data) {
+
     }
 
     function DeleteMeshesJointsAndImposters() {
