@@ -329,7 +329,12 @@
           var length = edges[edge_key].length
           var stiffness = edges[edge_key].stiffness
           var damping = edges[edge_key].damping
-          AddSpring(mesh1, mesh2, length, stiffness, damping)
+          edges[edges_key].joint = AddSpring(mesh1, mesh2, length, stiffness, damping)
+        }
+        // Group springs
+        // Check if file has groups
+        if (dictionary.hasOwnProperty("groups")) {
+          console.log("groups", data["groups"]);
         }
       })
     }
@@ -465,7 +470,9 @@
       groupOfPickedSpringsInfo.length = 0;
     };
 
-    function GroupSprings() {
+    function GroupSprings(springs=null) {
+      // Add so we can group from file
+
       // No need to group
       if (pickedSpringsInfo.length < 2) {
         return;
