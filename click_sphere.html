@@ -288,8 +288,6 @@
       joint.end_mesh = mesh2
 
       mesh1.physicsImpostor.addJoint(mesh2.physicsImpostor, joint);
-      // console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks.length);
-      // console.log(mesh1.physicsImpostor._onAfterPhysicsStepCallbacks)
       // Create cylinder
       createCylinderForSpring(joint)
       return joint;
@@ -323,6 +321,17 @@
         // Check if file has groups
         if (data.hasOwnProperty("groups")) {
           console.log("groups", data["groups"]);
+          // Get list of cylinders for each group
+          var groups = data["groups"]
+          for (var group in groups) {
+            var cylinders = [];
+            var group_edges = groups[group]
+            group_edges.forEach(function(group_edge) {
+              cylinders.push(edges[group_edge].joint.cylinder)
+            })
+            console.log(cylinders)
+            GroupSprings(cylinders)
+          }
         }
       })
     }
@@ -458,18 +467,24 @@
       groupOfPickedSpringsInfo.length = 0;
     };
 
-    function GroupSprings(springs=null) {
+    function GroupSprings(cylinders=null) {
       // Add so we can group from file
 
       // No need to group
-      if (pickedSpringsInfo.length < 2) {
-        return;
+      var orig_null = false
+      if (cylinders===null){
+        orig_null = true
+        if (pickedSpringsInfo.length < 2) {
+          return;
+        } else {
+          var cylinders = pickedSpringsInfo
+        }
       }
       // Check if spring/joint in group
       var newGroup = new Set();
       springGroups.push(newGroup);
       var groups_to_merge = new Set();
-      pickedSpringsInfo.forEach(function (cylinder) {
+      cylinders.forEach(function (cylinder) {
         groups_to_merge.add(cylinder.joint.group)
       });
       // Already grouped
@@ -487,11 +502,15 @@
         // Remove group from groups list
         var groupIndex = springGroups.indexOf(group);
         // Remove slider from control panel
+        console.log(group)
         panel.removeControl(group.header);
         panel.removeControl(group.slider);
-        // Delete slider
-        group.slider.dispose();
-        group.header.dispose();
+        try {
+          group.slider.dispose();
+          group.header.dispose();
+        } catch (e) {
+
+        }
         // Remove group from springGroups
         springGroups.splice(groupIndex, 1);
         // Delete group
@@ -507,10 +526,12 @@
       newGroup.slider = newControl.slider;
       newGroup.header = newControl.header;
 
-      newControl.header.isVisible = true;
-      newControl.slider.isVisible = true;
-      panel.addControl(newControl.header);
-      panel.addControl(newControl.slider);
+      if (orig_null == true) {
+        newControl.header.isVisible = true;
+        newControl.slider.isVisible = true;
+        panel.addControl(newControl.header);
+        panel.addControl(newControl.slider);
+      }
     };
 
     // document.getElementById("add_sphere").addEventListener("click", AddSphere);
