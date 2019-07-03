@@ -333,7 +333,7 @@
             GroupSprings(cylinders)
           }
         }
-      })
+      }) 
     }
 
     function DeleteMeshesJointsAndImposters() {
@@ -531,12 +531,58 @@
         newControl.slider.isVisible = true;
         panel.addControl(newControl.header);
         panel.addControl(newControl.slider);
-      }
+      } 
     };
 
     // document.getElementById("add_sphere").addEventListener("click", AddSphere);
     // document.getElementById("add_spring").addEventListener("click", AddSpring);
     // document.getElementById("delete").addEventListener("click", DeleteMeshesJointsAndImposters);
+	
+		function PrintSprings() {
+			var output_file = {
+				"nodes": {},
+				"edges": {},
+				"groups": {}
+			};
+      for (var i = 0; i < bodies.length; i++) {
+				var center = bodies[i].getObjectCenter();
+					output_file.nodes[i] = {
+						"x": center.x,
+						"y": center.y,
+						"z": center.z,
+					};
+			};
+			console.log(springGroups);
+      for (var i = 0; i < springGroups.length; i++) {
+				var group = springGroups[i]
+				output_file.groups[i] = []
+				group.forEach(function (joint) {
+					var start_index = bodies.indexOf(joint.start_mesh.physicsImpostor)
+					var end_index = bodies.indexOf(joint.end_mesh.physicsImpostor)
+					var key = "(" + start_index.toString() + "," + end_index.toString() + ")"
+					console.log(key);
+					output_file.edges[key] = {
+						"length": joint.physicsJoint.restLength,
+						"stiffness": joint.physicsJoint.stiffness,
+						"damping": joint.physicsJoint.damping,
+					}
+					output_file.groups[i].push(key)
+				});
+			};
+			console.log(output_file);
+			return output_file;
+		};
+
+		function download() {
+      var output_file = PrintSprings();
+			var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(output_file, null, "\t"));
+			var dlAnchorElem = document.createElement('a');
+      dlAnchorElem.setAttribute("href",     dataStr     );
+      dlAnchorElem.setAttribute("download", "scene.json");
+		  document.body.appendChild(dlAnchorElem);
+      dlAnchorElem.click(); 
+			dlAnchorElem.remove();
+		};
 
     function createCylinderForSpring(joint) {
       var vstart = joint.start_mesh.position;
@@ -779,6 +825,12 @@
           if (evt.sourceEvent.key == "f") {
             return CreateFromFile();
           }
+					if (evt.sourceEvent.key == "p") {
+						return PrintSprings();
+					}
+					if (evt.sourceEvent.key == "?") {
+						return download();
+					}
         }));
 
 
