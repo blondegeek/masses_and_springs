@@ -24,7 +24,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/5.0.0/math.js"></script>
   <script src="https://cdn.babylonjs.com/cannon.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
-  <script src="babylon.custom.js"></script>
+	<script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+	<!-- <script src="babylon.custom.js"></script> -->
   <script src="https://d3js.org/d3.v4.min.js"></script>
 </head>
 
@@ -347,9 +349,6 @@
                 groups_to_check.add(joint.group)
                 joint.group.delete(joint)
                 things_to_delete.add(joint);
-                // Move to later.
-                // joint.start_mesh.joints.delete(joint);
-                // joint.end_mesh.joints.delete(joint);
               }
               // Add Cylinder
               things_to_delete.add(joint.cylinder);
@@ -375,48 +374,52 @@
       // console.log(things_to_delete)
       console.log(things_to_delete)
       things_to_delete.forEach(function (element) {
-        console.log(element)
         try {
           element.dispose()
         } catch (e) {
+					console.log("exception caught")
           start_mesh = element.start_mesh;
           end_mesh = element.end_mesh;
-          var joint_counter = 0;
-          try {
-            var start_mesh_joints_length = start_mesh.joints.length
-            for (i = 0; i < start_mesh_joints_length; i++){
-              if (start_mesh.joints[i] == element) {
-                break;
+
+					var start_mesh_joints_length = start_mesh.joints.length
+					var joint_counter = 0;
+					for (i = 0; i < start_mesh_joints_length; i++){
+            if (start_mesh.joints[i] == element) {
+              break;
+            }
+            else {
+              if (start_mesh.joints[i].start_mesh == start_mesh) {
+                joint_counter = joint_counter + 1;
               }
-              else {
-                if (start_mesh.joints[i].start_mesh == start_mesh) {
-                  joint_counter = joint_counter + 1;
-                }
-              }
             }
-            // Delete constraint
-            console.log(start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.length)
-            var try1 = start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.splice(joint_counter, 1)
-            console.log(joint_counter, try1)
-            start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks = start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.splice(joint_counter, 1);
-          } catch (e) {}
-          try {
-            // Remove joint from joints array of start_mesh.
-            element_index_start = start_mesh.joints.indexOf(element)
-            if (element_index_start > -1) {
-              start_mesh.joints = start_mesh.joints.splice(element_index_start, 1);
-            }
-          } catch (e) {}
-          try {
-            // Remove joint from joints array of end_mesh.
-            element_index_end = end_mesh.joints.indexOf(element)
-            if (element_index_end > -1) {
-              end_mesh.joints = end_mesh.joints.splice(element_index_end, 1);
-            }
-          } catch (e) {}
-          // If mesh.joints was a Set();
-          // start_mesh.joints.delete(element);
-          // end_mesh.joints.delete(element);
+					}
+					try {
+					  start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.splice(joint_counter, 1)
+					} catch (e) {
+						console.log("physics step callback splice exception")
+					}
+
+          // Remove joint from joints array of start_mesh.
+          element_index_start = start_mesh.joints.indexOf(element)
+          if (element_index_start > -1) {
+            start_mesh.joints.splice(element_index_start);
+          }
+
+          // Remove joint from joints array of end_mesh.
+          element_index_end = end_mesh.joints.indexOf(element)
+          if (element_index_end > -1) {
+            end_mesh.joints.splice(element_index_end);
+					}
+
+
+					//scene.getPhysicsEngine().removeJoint(
+					//	element.start_mesh.physicsImpostor,
+					//	element.end_mesh.PhysicsImpostor,
+					//	element.physicsJoint)
+					//scene.getPhysicsEngine().removeJoint(
+					//	element.start_mesh.physicsImpostor,
+					//	element.end_mesh.PhysicsImpostor,
+					//	element)
         }
       });
       // Check if any joint groups need to be removed
@@ -431,10 +434,12 @@
         if (still_there == 0) {
           console.log("group being removed")
           // Remove group
-          console.log(group)
           groupIndex = springGroups.indexOf(group);
-          group.slider.dispose()
-          group.header.dispose()
+					try {
+						group.slider.dispose()
+						group.header.dispose()
+					} catch (e) {
+					}
         }
       })
 
