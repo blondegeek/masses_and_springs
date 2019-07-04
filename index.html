@@ -92,9 +92,12 @@
     //cylinderMat.alpha = 0.25;
 
     // Ground
-    var ground = BABYLON.Mesh.CreateGround("ground", 1000, 1000, 1, scene, false);
+		var ground = BABYLON.MeshBuilder.CreatePlane("ground", {width: 50, size:50, tileSize:1}, scene);
+	  ground.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL
+
     // Ensure that ground doesn't get in the way of picking other meshes.
     ground.isPickable = false;
+
     var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
     myMaterial.alpha = 0.0
     ground.material = myMaterial
@@ -410,16 +413,6 @@
           if (element_index_end > -1) {
             end_mesh.joints.splice(element_index_end);
 					}
-
-
-					//scene.getPhysicsEngine().removeJoint(
-					//	element.start_mesh.physicsImpostor,
-					//	element.end_mesh.PhysicsImpostor,
-					//	element.physicsJoint)
-					//scene.getPhysicsEngine().removeJoint(
-					//	element.start_mesh.physicsImpostor,
-					//	element.end_mesh.PhysicsImpostor,
-					//	element)
         }
       });
       // Check if any joint groups need to be removed
@@ -615,6 +608,7 @@
     var getGroundPosition = function (evt) {
       // Use a predicate to get position on the ground
       var pickinfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh == ground; });
+			console.log(pickinfo)
       if (pickinfo.hit) {
         return pickinfo.pickedPoint;
       }
