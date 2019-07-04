@@ -331,13 +331,20 @@
 		function MergeSpheres() {
 			pickedMeshesInfo.forEach(function (mesh) {
 				var spheres_to_merge = [];
-					if (mesh.sphere) {
-						spheres_to_merge.push(mesh);
-				  }
-					// We will default to the first sphere being kept
-					// All joints of spheres will be effected
-					// Merge groups if springs belong to different groups
-					// Only keep one spring per set of endpoints
+				var joint_ends = Set();
+				if (mesh.sphere) {
+					spheres_to_merge.push(mesh);
+					mesh.joints.forEach(function (joint) {
+						var start_mesh = joint.start_mesh
+						var end_mesh = joint.end_mesh
+					});
+			  }
+
+
+				// We will default to the first sphere being kept
+				// All joints of spheres will be effected
+				// Merge groups if springs belong to different groups
+				// Only keep one spring per set of endpoints
 			});
 		};
 
@@ -354,8 +361,15 @@
 		}
 
 		function DeleteJoint(joint) {
+			// This function deletes joint from physics engine
+			// This function removes joint from start and end mesh joing lists
+			// This function disposes of cylinder
+			// It does NOT update groups
+
       start_mesh = joint.start_mesh;
       end_mesh = joint.end_mesh;
+
+			joint.cylinder.dispose()
 
 			var start_mesh_joints_length = start_mesh.joints.length
 			var joint_counter = 0;
@@ -388,6 +402,12 @@
 			}
 		}
 
+		function DeleteSphere(sphere) {
+			bodyIndex = bodies.indexOf(sphere.physicsImpostor);
+			bodies.splice(bodyIndex, 1);
+			sphere.dispose();
+		}
+
     function DeleteMeshesJointsAndImposters() {
       // First construct set of objects that need to be deleted
       var things_to_delete = new Set();
@@ -396,15 +416,6 @@
         if (mesh.sphere){
           // Add Sphere
           things_to_delete.add(mesh);
-          // Add Sphere physicsImpostor
-          if (mesh.physicsImpostor) {
-            // Remove from bodies array
-            if (!things_to_delete.has(mesh.physicsImpostor)){
-              bodyIndex = bodies.indexOf(mesh.physicsImpostor);
-              bodies.splice(bodyIndex, 1);
-            }
-            things_to_delete.add(mesh.physicsImpostor);
-          }
           if (mesh.joints) {
             mesh.joints.forEach(function (joint){
               // Remove joint from joints array
@@ -413,15 +424,12 @@
                 joint.group.delete(joint)
                 things_to_delete.add(joint);
               }
-              // Add Cylinder
-              things_to_delete.add(joint.cylinder);
             });
           }
         }
       });
       pickedSpringsInfo.forEach(function (mesh) {
         if (mesh.cylinder){
-          things_to_delete.add(mesh);
           // Delete joint
           if (!things_to_delete.has(mesh.joint)){
             groups_to_check.add(mesh.joint.group);
@@ -431,33 +439,17 @@
         }
       });
       things_to_delete.forEach(function (element) {
-        try {
-          element.dispose()
-        } catch (e) {
-					console.log("exception caught")
+				if (element.sphere) {
+					DeleteSphere(element)
+				} else {
 					DeleteJoint(element)
-       }
+        }
       });
       // Check if any joint groups need to be removed
-      groups_to_check.forEach(function (group) {
-        var still_there = 0;
-        group.forEach(function (joint) {
-          // There isn't a pretty way to do breaks in forEach
-          if (joints.indexOf(joint) > -1) {
-            still_there = still_there + 1;
-          }
-        });
-        if (still_there == 0) {
-          console.log("group being removed")
-          // Remove group
-          groupIndex = springGroups.indexOf(group);
-					try {
-						group.slider.dispose()
-						group.header.dispose()
-					} catch (e) {
-					}
-        }
-      })
+			groups_to_check.forEach(function (group){
+				CheckGroup(group);
+			});
+
 
       // Clear pickedMeshesInfo
       for (var i = 0; i < pickedMeshesInfo.length; i++) {
@@ -474,6 +466,26 @@
       }
       groupOfPickedSpringsInfo.length = 0;
     };
+
+	function CheckGroup(group) {
+    var still_there = 0;
+    group.forEach(function (joint) {
+      // There isn't a pretty way to do breaks in forEach
+      if (joints.indexOf(joint) > -1) {
+        still_there = still_there + 1;
+      }
+    });
+    if (still_there == 0) {
+      console.log("group being removed")
+      // Remove group
+      groupIndex = springGroups.indexOf(group);
+			try {
+				group.slider.dispose()
+				group.header.dispose()
+			} catch (e) {
+			}
+    }
+	};
 
     function GroupSprings(cylinders=null) {
       // Add so we can group from file
@@ -537,10 +549,6 @@
       } 
     };
 
-    // document.getElementById("add_sphere").addEventListener("click", AddSphere);
-    // document.getElementById("add_spring").addEventListener("click", AddSpring);
-    // document.getElementById("delete").addEventListener("click", DeleteMeshesJointsAndImposters);
-	
 		function PrintSprings() {
 			var output_file = {
 				"nodes": {},
