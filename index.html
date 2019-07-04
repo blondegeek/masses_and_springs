@@ -66,19 +66,6 @@
       return decodeURIComponent(results[2].replace(/\+/g, " "));
   }
 
-  function getEdges(nodes) {
-    nodes.sort()
-    var edges = []
-    var iterator1 = nodes.entries()
-    for (let node1 of iterator1) {
-      var iterator2 = nodes.slice(node1[0]+1).entries()
-      for (let node2 of iterator2){
-        edges.push([node1[1], node2[1]]);
-      }
-    }
-    return edges
-  }
-
   var createScene = function () {
 
     // Create the scene space
@@ -298,7 +285,8 @@
         var nodes = data["nodes"]
         var edges = data["edges"]
         var node_keys = Object.keys(nodes)
-        var edge_keys = getEdges(node_keys)
+				var edge_keys = Object.keys(edges)
+        //var edge_keys = getEdges(node_keys)
         // Create Spheres
         for (var key in nodes) {
           nodes[key].sphere = AddSphere(
@@ -309,18 +297,18 @@
         }
         // Create Springs
         for (var key in edge_keys) {
-          var mesh1 = nodes[edge_keys[key][0]].sphere
-          var mesh2 = nodes[edge_keys[key][1]].sphere
-          var edge_key = "("+edge_keys[key].join(",")+")"
-          var length = edges[edge_key].length
-          var stiffness = edges[edge_key].stiffness
-          var damping = edges[edge_key].damping
-          edges[edge_key].joint = AddSpring(mesh1, mesh2, length, stiffness, damping)
+					var key_array = JSON.parse(edge_keys[key].replace(")", "]").replace("(", "["))
+          var mesh1 = nodes[key_array[0]].sphere
+          var mesh2 = nodes[key_array[1]].sphere
+          var edge_key = edge_keys[key]
+					var length = edges[edge_key].length
+					var stiffness = edges[edge_key].stiffness
+					var damping = edges[edge_key].damping
+					edges[edge_key].joint = AddSpring(mesh1, mesh2, length, stiffness, damping)
         }
         // Group springs
         // Check if file has groups
         if (data.hasOwnProperty("groups")) {
-          console.log("groups", data["groups"]);
           // Get list of cylinders for each group
           var groups = data["groups"]
           for (var group in groups) {
@@ -329,7 +317,6 @@
             group_edges.forEach(function(group_edge) {
               cylinders.push(edges[group_edge].joint.cylinder)
             })
-            console.log(cylinders)
             GroupSprings(cylinders)
           }
         }
@@ -493,8 +480,6 @@
       }
 
       // Fill all_joints
-      console.log(springGroups);
-
       groups_to_merge.forEach(function (group) {
         group.forEach(function (joint) {
           newGroup.add(joint);
@@ -502,7 +487,6 @@
         // Remove group from groups list
         var groupIndex = springGroups.indexOf(group);
         // Remove slider from control panel
-        console.log(group)
         panel.removeControl(group.header);
         panel.removeControl(group.slider);
         try {
@@ -516,8 +500,6 @@
         // Delete group
         delete group;
       });
-
-      console.log(springGroups);
 
       newGroup.forEach(function (joint) {
         joint.group = newGroup;
