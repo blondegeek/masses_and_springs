@@ -328,6 +328,66 @@
       }) 
     }
 
+		function MergeSpheres() {
+			pickedMeshesInfo.forEach(function (mesh) {
+				var spheres_to_merge = [];
+					if (mesh.sphere) {
+						spheres_to_merge.push(mesh);
+				  }
+					// We will default to the first sphere being kept
+					// All joints of spheres will be effected
+					// Merge groups if springs belong to different groups
+					// Only keep one spring per set of endpoints
+			});
+		};
+
+		function BreakSpring() {
+			pickedMeshesInfo.forEach(function (mesh) {
+				var cylinders_to_split_off = []
+				if (mesh.cylinder) {
+					cylinders_to_split_off.push(mesh);
+				}
+				// Split off into seperate groups
+				// We can use group springs on select
+				// Need to fix highlight layer after
+			});
+		}
+
+		function DeleteJoint(joint) {
+      start_mesh = joint.start_mesh;
+      end_mesh = joint.end_mesh;
+
+			var start_mesh_joints_length = start_mesh.joints.length
+			var joint_counter = 0;
+			for (i = 0; i < start_mesh_joints_length; i++){
+        if (start_mesh.joints[i] == joint) {
+          break;
+        }
+        else {
+          if (start_mesh.joints[i].start_mesh == start_mesh) {
+            joint_counter = joint_counter + 1;
+          }
+        }
+			}
+			try {
+			  start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.splice(joint_counter, 1)
+			} catch (e) {
+				console.log("physics step callback splice exception")
+			}
+
+      // Remove joint from joints array of start_mesh.
+      element_index_start = start_mesh.joints.indexOf(joint)
+      if (element_index_start > -1) {
+        start_mesh.joints.splice(element_index_start);
+      }
+
+      // Remove joint from joints array of end_mesh.
+      element_index_end = end_mesh.joints.indexOf(joint)
+      if (element_index_end > -1) {
+        end_mesh.joints.splice(element_index_end);
+			}
+		}
+
     function DeleteMeshesJointsAndImposters() {
       // First construct set of objects that need to be deleted
       var things_to_delete = new Set();
@@ -367,53 +427,16 @@
             groups_to_check.add(mesh.joint.group);
             mesh.joint.group.delete(mesh.joint);
             things_to_delete.add(mesh.joint);
-            // Move to later.
-            // Delete joint from mesh joint lists
-            // mesh.joint.start_mesh.joints.delete(mesh.joint)
-            // mesh.joint.end_mesh.joints.delete(mesh.joint)
           }
         }
       });
-      // console.log(things_to_delete)
-      console.log(things_to_delete)
       things_to_delete.forEach(function (element) {
         try {
           element.dispose()
         } catch (e) {
 					console.log("exception caught")
-          start_mesh = element.start_mesh;
-          end_mesh = element.end_mesh;
-
-					var start_mesh_joints_length = start_mesh.joints.length
-					var joint_counter = 0;
-					for (i = 0; i < start_mesh_joints_length; i++){
-            if (start_mesh.joints[i] == element) {
-              break;
-            }
-            else {
-              if (start_mesh.joints[i].start_mesh == start_mesh) {
-                joint_counter = joint_counter + 1;
-              }
-            }
-					}
-					try {
-					  start_mesh.physicsImpostor._onAfterPhysicsStepCallbacks.splice(joint_counter, 1)
-					} catch (e) {
-						console.log("physics step callback splice exception")
-					}
-
-          // Remove joint from joints array of start_mesh.
-          element_index_start = start_mesh.joints.indexOf(element)
-          if (element_index_start > -1) {
-            start_mesh.joints.splice(element_index_start);
-          }
-
-          // Remove joint from joints array of end_mesh.
-          element_index_end = end_mesh.joints.indexOf(element)
-          if (element_index_end > -1) {
-            end_mesh.joints.splice(element_index_end);
-					}
-        }
+					DeleteJoint(element)
+       }
       });
       // Check if any joint groups need to be removed
       groups_to_check.forEach(function (group) {
@@ -608,7 +631,6 @@
     var getGroundPosition = function (evt) {
       // Use a predicate to get position on the ground
       var pickinfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh == ground; });
-			console.log(pickinfo)
       if (pickinfo.hit) {
         return pickinfo.pickedPoint;
       }
@@ -665,7 +687,7 @@
         // check if we are under a mesh
         var pickInfo = scene.pick(scene.pointerX, scene.pointerY);
         if (pickInfo.hit) {
-          if (pickInfo.pickedMesh.cylinder){
+          if (pickInfo.pickedMesh.cylinder) {
             // Should we check if it's already there?
             pickedSpringsInfo.push(pickInfo.pickedMesh);
             // Remove from highlight layer if already there
