@@ -24,9 +24,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/5.0.0/math.js"></script>
   <script src="https://cdn.babylonjs.com/cannon.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
-	<script src="https://cdn.babylonjs.com/babylon.js"></script>
+	<!-- <script src="https://cdn.babylonjs.com/babylon.js"></script> -->
   <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
-	<!-- <script src="babylon.custom.js"></script> -->
+	<script src="babylon.custom.js"></script>
   <script src="https://d3js.org/d3.v4.min.js"></script>
 </head>
 
@@ -92,7 +92,7 @@
     //cylinderMat.alpha = 0.25;
 
     // Ground
-		var ground = BABYLON.MeshBuilder.CreatePlane("ground", {width: 50, size:50, tileSize:1}, scene);
+		var ground = BABYLON.MeshBuilder.CreatePlane("ground", {width: 1000, size:1000, tileSize:1}, scene);
 	  ground.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL
 
     // Ensure that ground doesn't get in the way of picking other meshes.
@@ -329,22 +329,72 @@
     }
 
 		function MergeSpheres() {
+			var spheres_to_merge = [];
+			var joint_ends = Set();
+			var joints_to_delete = Set();
+			var joints_to_add = [];
+			var sphere_zero_joints = [];
+
+			// Get all spheres
 			pickedMeshesInfo.forEach(function (mesh) {
-				var spheres_to_merge = [];
-				var joint_ends = Set();
 				if (mesh.sphere) {
 					spheres_to_merge.push(mesh);
-					mesh.joints.forEach(function (joint) {
-						var start_mesh = joint.start_mesh
-						var end_mesh = joint.end_mesh
-					});
 			  }
+			});
 
+			// Get joints of zero sphere
+			spheres_to_merge[0].joints.forEach(function (joint) {
+				var start_mesh = joint.start_mesh;
+				var end_mesh = joint.end_mesh;
+				if (start_mesh == spheres_to_merge[0] && spheres_to_merge.indexOf(end_mesh) == -1) {
+					sphere_zero_joints.push(end_mesh);
+				} else if (end_mesh == spheres_to_merge[0] && spheres_to_merge.indexOf(start_mesh) == -1) {
+				  sphere_zero_joints.push(start_mesh);
+				};
+			});
 
-				// We will default to the first sphere being kept
-				// All joints of spheres will be effected
-				// Merge groups if springs belong to different groups
-				// Only keep one spring per set of endpoints
+			// Get joint end points
+			spheres_to_merge.forEach(function (sphere) {
+			  sphere.joints.forEach(function (joint) {
+					var start_mesh = joint.start_mesh;
+					var end_mesh = joint.end_mesh;
+					var start_index = spheres_to_merge.indexOf(start_index)
+					var end_index = spheres_to_merge.indexOf(end_index)
+					if (start_index > -1 && end_index > -1) {
+						// joint is removed and does not need to be replaced
+						joints_to_delete.push(joint);
+					} else {
+						if (start_index > -1 && start_index != 0) {
+							joints_to_delete.add(joint)
+							if (sphere_zero_joints.indexOf(end_mesh) == -1) {
+								joints_to_add.push(end_mesh)
+							}
+						} else if (end_index > -1 && end_index != 0) {
+							joints_to_delete.add(joint)
+							if (sphere_zero_joints.indexOF(start_mesh) == -1) {
+								joints_to_add.push(start_mesh)
+							}
+						}
+					}
+				});
+			});
+				
+			// Update joint groups
+			// Delete joints
+			joints_to_delete.forEach(function (joint) {
+				joint.group.delete(joint);
+				CheckGroup(joint.group)
+				DeleteJoint(joint)
+			});
+
+			// Create new springs
+			joints_to_add.forEach(function (end_mesh) {
+				AddSpring(spheres_to_merge[0], end_mesh);
+			});
+
+			// Delete Spheres
+			spheres_to_merge.slice(1).forEach(function (sphere) {
+				DeleteSphere(sphere);
 			});
 		};
 
