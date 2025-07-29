@@ -328,77 +328,74 @@
       }) 
     }
 
-		function MergeSpheres() {
-			var spheres_to_merge = [];
-			var joint_ends = Set();
-			var joints_to_delete = Set();
-			var joints_to_add = [];
-			var sphere_zero_joints = [];
+function MergeSpheres() {
+    if (pickedMeshesInfo.length < 2) {
+        console.log("Select at least two spheres to merge.");
+        return;
+    }
 
-			// Get all spheres
-			pickedMeshesInfo.forEach(function (mesh) {
-				if (mesh.sphere) {
-					spheres_to_merge.push(mesh);
-			  }
-			});
+    // Filter to spheres only
+    var spheres_to_merge = pickedMeshesInfo.filter(m => m.sphere);
+    if (spheres_to_merge.length < 2) return;
 
-			// Get joints of zero sphere
-			spheres_to_merge[0].joints.forEach(function (joint) {
-				var start_mesh = joint.start_mesh;
-				var end_mesh = joint.end_mesh;
-				if (start_mesh == spheres_to_merge[0] && spheres_to_merge.indexOf(end_mesh) == -1) {
-					sphere_zero_joints.push(end_mesh);
-				} else if (end_mesh == spheres_to_merge[0] && spheres_to_merge.indexOf(start_mesh) == -1) {
-				  sphere_zero_joints.push(start_mesh);
-				};
-			});
+    var target = spheres_to_merge[0];  // keep this one
+    var others = spheres_to_merge.slice(1);
 
-			// Get joint end points
-			spheres_to_merge.forEach(function (sphere) {
-			  sphere.joints.forEach(function (joint) {
-					var start_mesh = joint.start_mesh;
-					var end_mesh = joint.end_mesh;
-					var start_index = spheres_to_merge.indexOf(start_index)
-					var end_index = spheres_to_merge.indexOf(end_index)
-					if (start_index > -1 && end_index > -1) {
-						// joint is removed and does not need to be replaced
-						joints_to_delete.push(joint);
-					} else {
-						if (start_index > -1 && start_index != 0) {
-							joints_to_delete.add(joint)
-							if (sphere_zero_joints.indexOf(end_mesh) == -1) {
-								joints_to_add.push(end_mesh)
-							}
-						} else if (end_index > -1 && end_index != 0) {
-							joints_to_delete.add(joint)
-							if (sphere_zero_joints.indexOF(start_mesh) == -1) {
-								joints_to_add.push(start_mesh)
-							}
-						}
-					}
-				});
-			});
-				
-			// Update joint groups
-			// Delete joints
-			joints_to_delete.forEach(function (joint) {
-				joint.group.delete(joint);
-				CheckGroup(joint.group)
-				DeleteJoint(joint)
-			});
+    var joints_to_add = [];
+    var joints_to_delete = new Set();
 
-			// Create new springs
-			joints_to_add.forEach(function (end_mesh) {
-				AddSpring(spheres_to_merge[0], end_mesh);
-			});
+    // For each sphere we're going to delete
+    others.forEach(function (sphere) {
+        sphere.joints.forEach(function (joint) {
+            var a = joint.start_mesh;
+            var b = joint.end_mesh;
 
-			// Delete Spheres
-			spheres_to_merge.slice(1).forEach(function (sphere) {
-				DeleteSphere(sphere);
-			});
-		};
+            // Identify the "other end" of the joint
+            var otherMesh = (a === sphere) ? b : a;
 
-		function BreakSpring() {
+            // If both ends are in the merge set, drop this joint entirely
+            if (spheres_to_merge.includes(otherMesh)) {
+                joints_to_delete.add(joint);
+            } else {
+                // If it's connected to something outside, we need to recreate
+                joints_to_delete.add(joint);
+                joints_to_add.push({
+                    other: otherMesh,
+                    length: joint.physicsJoint.restLength,
+                    stiffness: joint.physicsJoint.stiffness,
+                    damping: joint.physicsJoint.damping
+                });
+            }
+        });
+    });
+
+    // Delete old joints
+    joints_to_delete.forEach(function (joint) {
+        joint.group.delete(joint);
+        CheckGroup(joint.group);
+        DeleteJoint(joint);
+    });
+
+    // Add new joints to the target sphere
+    joints_to_add.forEach(function (info) {
+        AddSpring(target, info.other, info.length, info.stiffness, info.damping);
+    });
+
+    // Remove merged spheres from scene
+    others.forEach(function (sphere) {
+        DeleteSphere(sphere);
+    });
+
+    // Optional: reposition target to the average position of all merged spheres
+    var avgPos = new BABYLON.Vector3(0, 0, 0);
+    spheres_to_merge.forEach(s => avgPos.addInPlace(s.position));
+    avgPos.scaleInPlace(1 / spheres_to_merge.length);
+    target.position.copyFrom(avgPos);
+
+    console.log("Merged", spheres_to_merge.length, "spheres into one.");
+}
+
+  function BreakSpring() {
 			pickedMeshesInfo.forEach(function (mesh) {
 				var cylinders_to_split_off = []
 				if (mesh.cylinder) {
@@ -886,12 +883,15 @@
           if (evt.sourceEvent.key == "f") {
             return CreateFromFile();
           }
-					if (evt.sourceEvent.key == "p") {
-						return PrintSprings();
-					}
-					if (evt.sourceEvent.key == "?") {
-						return download();
-					}
+          if (evt.sourceEvent.key == "m") {
+              return MergeSpheres();
+          }
+		  if (evt.sourceEvent.key == "p") {
+			  return PrintSprings();
+		  }
+		  if (evt.sourceEvent.key == "?") {
+			  return download();
+		  }
         }));
 
 
