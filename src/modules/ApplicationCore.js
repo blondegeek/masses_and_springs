@@ -239,7 +239,10 @@ export class ApplicationCore {
                 }
             });
             
-            const newGroup = this.springManager.groupSprings(pickedSprings);
+            // Convert joints back to cylinders for SpringManager
+            const allCylindersToGroup = Array.from(allJointsToGroup).map(joint => joint.cylinder);
+            
+            const newGroup = this.springManager.groupSprings(allCylindersToGroup);
             if (newGroup) {
                 this.uiManager.showSpringControl(newGroup);
             }
