@@ -16,7 +16,7 @@ export class UIManager {
     createButtonPanel() {
         this.buttonPanel = new BABYLON.GUI.StackPanel();
         this.buttonPanel.width = "250px";
-        this.buttonPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        this.buttonPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         this.buttonPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
         this.advancedTexture.addControl(this.buttonPanel);
     }
