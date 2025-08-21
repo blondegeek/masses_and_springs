@@ -102,8 +102,12 @@ export class InputHandler {
             
             // Check if this spring belongs to a group with multiple springs
             if (group && group.size > 1) {
-                // Select the entire group, not just individual spring
-                this.selectSpringGroup(pickInfo.pickedMesh, group);
+                // Check if this spring is already selected - if so, don't re-select
+                if (this.pickedSpringsInfo.indexOf(pickInfo.pickedMesh) === -1) {
+                    // Select the entire group, not just individual spring
+                    this.selectSpringGroup(pickInfo.pickedMesh, group);
+                }
+                // If already selected, do nothing (avoid duplicate sliders)
             } else {
                 // Single spring or ungrouped - select individually
                 if (this.pickedSpringsInfo.indexOf(pickInfo.pickedMesh) === -1) {
