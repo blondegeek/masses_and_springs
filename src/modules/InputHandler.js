@@ -97,11 +97,20 @@ export class InputHandler {
     handleCtrlAltClick() {
         const pickInfo = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
         if (pickInfo.hit && pickInfo.pickedMesh.cylinder) {
-            // Add spring to selection if not already selected
-            if (this.pickedSpringsInfo.indexOf(pickInfo.pickedMesh) === -1) {
-                this.pickedSpringsInfo.push(pickInfo.pickedMesh);
-                if (this.onSpringSelected) {
-                    this.onSpringSelected(pickInfo.pickedMesh, null, true);
+            const joint = pickInfo.pickedMesh.joint;
+            const group = joint.group;
+            
+            // Check if this spring belongs to a group with multiple springs
+            if (group && group.size > 1) {
+                // Select the entire group, not just individual spring
+                this.selectSpringGroup(pickInfo.pickedMesh, group);
+            } else {
+                // Single spring or ungrouped - select individually
+                if (this.pickedSpringsInfo.indexOf(pickInfo.pickedMesh) === -1) {
+                    this.pickedSpringsInfo.push(pickInfo.pickedMesh);
+                    if (this.onSpringSelected) {
+                        this.onSpringSelected(pickInfo.pickedMesh, null, true);
+                    }
                 }
             }
         }
@@ -122,6 +131,25 @@ export class InputHandler {
             if (this.onSpringSelected) {
                 this.onSpringSelected(pickInfo.pickedMesh, pickInfo.pickedMesh.joint.group);
             }
+        }
+    }
+
+    selectSpringGroup(clickedMesh, group) {
+        // Add the clicked spring to individual selection
+        if (this.pickedSpringsInfo.indexOf(clickedMesh) === -1) {
+            this.pickedSpringsInfo.push(clickedMesh);
+        }
+        
+        // Add all other group members to group selection and highlight them
+        group.forEach(joint => {
+            if (joint.cylinder !== clickedMesh && this.groupOfPickedSpringsInfo.indexOf(joint.cylinder) === -1) {
+                this.groupOfPickedSpringsInfo.push(joint.cylinder);
+            }
+        });
+        
+        // Notify about the group selection
+        if (this.onSpringSelected) {
+            this.onSpringSelected(clickedMesh, group, true);
         }
     }
 
@@ -158,10 +186,14 @@ export class InputHandler {
     clearSpringSelection() {
         if (this.onSpringSelected) {
             this.pickedSpringsInfo.forEach(mesh => {
-                this.onSpringSelected(mesh, null, false);
+                // Pass the group if this spring belongs to one (for proper cleanup)
+                const group = mesh.joint && mesh.joint.group && mesh.joint.group.size > 1 ? mesh.joint.group : null;
+                this.onSpringSelected(mesh, group, false);
             });
             this.groupOfPickedSpringsInfo.forEach(mesh => {
-                this.onSpringSelected(mesh, null, false);
+                // These are always part of groups
+                const group = mesh.joint && mesh.joint.group ? mesh.joint.group : null;
+                this.onSpringSelected(mesh, group, false);
             });
         }
         this.pickedSpringsInfo.length = 0;

@@ -216,6 +216,14 @@ export class ApplicationCore {
     groupSprings() {
         const pickedSprings = this.inputHandler.getPickedSprings();
         if (pickedSprings.length >= 2) {
+            // Clean up any individual sliders before grouping
+            pickedSprings.forEach(mesh => {
+                if (mesh.joint && mesh.joint.tempGroup) {
+                    this.uiManager.hideSpringControl(mesh.joint.tempGroup);
+                    delete mesh.joint.tempGroup;
+                }
+            });
+            
             const newGroup = this.springManager.groupSprings(pickedSprings);
             if (newGroup) {
                 this.uiManager.showSpringControl(newGroup);
