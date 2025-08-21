@@ -104,10 +104,9 @@ export class InputHandler {
                     this.onSpringSelected(pickInfo.pickedMesh, null, true);
                 }
             }
-        } else {
-            // If clicking on non-spring, clear spring selection
-            this.clearSpringSelection();
         }
+        // Note: Don't clear spring selection when clicking on non-springs
+        // Users should use Ctrl+Shift+click to explicitly clear spring selection
     }
 
     handleShiftClick() {
