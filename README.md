@@ -39,7 +39,7 @@ The codebase has been refactored from a monolithic structure into a modular, mai
 
 ### Getting Started
 
-1. Open `index_refactored.html` in a modern web browser
+1. Open `index.html` in a modern web browser
 2. Use the UI buttons or keyboard shortcuts to interact with the simulation
 
 ### Controls
@@ -90,6 +90,10 @@ Add `?json=geometries/filename.json` to the URL to automatically load a configur
 ```
 index.html?json=geometries/tetra_4.json
 ```
+
+**Note**: For local file loading to work, your browser must allow access to local files. You may need to:
+- Start a local web server (recommended): `python -m http.server 8000` or `npx serve`
+- Or use browser flags like `--allow-file-access-from-files` (Chrome)
 
 Example geometries included:
 - `tetra_4.json` - Tetrahedron with 4 nodes
