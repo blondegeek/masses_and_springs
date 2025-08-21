@@ -86,10 +86,16 @@ Configurations are saved as JSON files with the following structure:
 
 ### Loading Files
 
-Add `?json=filename.json` to the URL to automatically load a configuration:
+Add `?json=geometries/filename.json` to the URL to automatically load a configuration:
 ```
-index_refactored.html?json=tetra_4.json
+index.html?json=geometries/tetra_4.json
 ```
+
+Example geometries included:
+- `tetra_4.json` - Tetrahedron with 4 nodes
+- `octa_6.json` - Octahedron with 6 nodes  
+- `cube_test.json` - Simple cube structure
+- `tetra_chain.json` - Chain of connected tetrahedra
 
 ## Dependencies
 
@@ -109,6 +115,20 @@ The modular structure makes it easy to extend functionality:
 3. **Add UI elements** through the UIManager
 4. **Change rendering** in the RenderManager
 5. **Add new file formats** in the FileManager
+
+## Repository Structure
+
+```
+masses_and_springs/
+├── index.html              # Main refactored application
+├── src/modules/             # Modular JavaScript components
+├── libs/                    # JavaScript dependencies
+├── geometries/              # Saved shape configurations (.json)
+├── README.md               # This documentation
+├── babylon.custom.js       # Custom Babylon.js build
+├── index2.html            # Original working version
+└── index2_original.html   # Earlier version backup
+```
 
 ## Migration from index2.html
 
