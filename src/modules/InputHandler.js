@@ -34,6 +34,8 @@ export class InputHandler {
 
         if (event.ctrlKey && event.shiftKey) {
             this.clearSpringSelection();
+        } else if (event.ctrlKey && event.altKey) {
+            this.handleCtrlAltClick();
         } else if (event.ctrlKey) {
             this.clearMeshSelection();
         } else if (event.altKey) {
@@ -89,6 +91,22 @@ export class InputHandler {
             setTimeout(() => {
                 this.camera.detachControl(this.canvas);
             }, 0);
+        }
+    }
+
+    handleCtrlAltClick() {
+        const pickInfo = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
+        if (pickInfo.hit && pickInfo.pickedMesh.cylinder) {
+            // Add spring to selection if not already selected
+            if (this.pickedSpringsInfo.indexOf(pickInfo.pickedMesh) === -1) {
+                this.pickedSpringsInfo.push(pickInfo.pickedMesh);
+                if (this.onSpringSelected) {
+                    this.onSpringSelected(pickInfo.pickedMesh, null, true);
+                }
+            }
+        } else {
+            // If clicking on non-spring, clear spring selection
+            this.clearSpringSelection();
         }
     }
 

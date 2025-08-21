@@ -47,6 +47,7 @@ The codebase has been refactored from a monolithic structure into a modular, mai
 #### Mouse Controls
 - **Click & Drag**: Move spheres
 - **Alt + Click**: Select multiple spheres (green highlight)
+- **Ctrl + Alt + Click**: Select individual springs (red highlight)
 - **Shift + Click**: Select springs and view groups (red/yellow highlight)
 - **Ctrl + Click**: Clear sphere selection
 - **Ctrl + Shift + Click**: Clear spring selection
