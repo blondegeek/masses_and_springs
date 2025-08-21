@@ -94,7 +94,7 @@ export class ApplicationCore {
             if (selected) {
                 this.sceneManager.highlightLayer.addMesh(mesh, BABYLON.Color3.Red());
                 
-                // Highlight group members in yellow
+                // If group is provided (shift+click), highlight group members in yellow and show controls
                 if (group) {
                     group.forEach(joint => {
                         if (this.inputHandler.getPickedSprings().indexOf(joint.cylinder) === -1) {
@@ -104,11 +104,21 @@ export class ApplicationCore {
                     });
                     
                     this.uiManager.showSpringControl(group);
+                } else {
+                    // For Ctrl+Alt+click (individual spring), create a temporary group and show slider
+                    const tempGroup = new Set();
+                    tempGroup.add(mesh.joint);
+                    mesh.joint.tempGroup = tempGroup;
+                    this.uiManager.showSpringControl(tempGroup);
                 }
             } else {
                 this.sceneManager.highlightLayer.removeMesh(mesh);
                 if (group) {
                     this.uiManager.hideSpringControl(group);
+                } else if (mesh.joint && mesh.joint.tempGroup) {
+                    // Clean up temporary group for individual spring
+                    this.uiManager.hideSpringControl(mesh.joint.tempGroup);
+                    delete mesh.joint.tempGroup;
                 }
             }
         };
