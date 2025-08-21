@@ -216,11 +216,26 @@ export class ApplicationCore {
     groupSprings() {
         const pickedSprings = this.inputHandler.getPickedSprings();
         if (pickedSprings.length >= 2) {
-            // Clean up any individual sliders before grouping
+            // Collect ALL joints that will be involved in the grouping operation
+            const allJointsToGroup = new Set();
+            
             pickedSprings.forEach(mesh => {
-                if (mesh.joint && mesh.joint.tempGroup) {
-                    this.uiManager.hideSpringControl(mesh.joint.tempGroup);
-                    delete mesh.joint.tempGroup;
+                // Add the joint itself
+                allJointsToGroup.add(mesh.joint);
+                
+                // Add all joints from this joint's existing group
+                if (mesh.joint.group) {
+                    mesh.joint.group.forEach(joint => {
+                        allJointsToGroup.add(joint);
+                    });
+                }
+            });
+            
+            // Clean up individual sliders for ALL joints being grouped
+            allJointsToGroup.forEach(joint => {
+                if (joint.tempGroup) {
+                    this.uiManager.hideSpringControl(joint.tempGroup);
+                    delete joint.tempGroup;
                 }
             });
             
