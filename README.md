@@ -120,19 +120,17 @@ The modular structure makes it easy to extend functionality:
 
 ```
 masses_and_springs/
-├── index.html              # Main refactored application
+├── index.html              # Main application
 ├── src/modules/             # Modular JavaScript components
 ├── libs/                    # JavaScript dependencies
 ├── geometries/              # Saved shape configurations (.json)
 ├── README.md               # This documentation
-├── babylon.custom.js       # Custom Babylon.js build
-├── index2.html            # Original working version
-└── index2_original.html   # Earlier version backup
+└── babylon.custom.js       # Custom Babylon.js build
 ```
 
-## Migration from index2.html
+## Features
 
-The refactored version maintains all functionality from the original `index2.html` while providing a cleaner, more maintainable codebase. All original features including sphere creation, spring physics, grouping, merging, and file I/O are preserved.
+The application maintains all functionality from the original while providing a cleaner, more maintainable codebase. All features including sphere creation, spring physics, grouping, merging, and file I/O are preserved and enhanced.
 
 ## Browser Compatibility
 
