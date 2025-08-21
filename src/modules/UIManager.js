@@ -31,7 +31,16 @@ export class UIManager {
 
     addButton(text, callback) {
         const button = new BABYLON.GUI.Button.CreateSimpleButton("button", text);
-        button.height = text.includes("\n") ? "60px" : "30px";
+        
+        // Calculate height based on text content
+        if (text.includes("Print to Console") || text.includes("Merge Spheres")) {
+            button.height = "50px";
+        } else if (text.includes("\n")) {
+            button.height = "60px";
+        } else {
+            button.height = "30px";
+        }
+        
         button.width = "150px";
         button.color = "white";
         button.onPointerDownObservable.add(callback);
