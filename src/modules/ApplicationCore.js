@@ -105,11 +105,16 @@ export class ApplicationCore {
                     
                     this.uiManager.showSpringControl(group);
                 } else {
-                    // For Ctrl+Alt+click (individual spring), create a temporary group and show slider
-                    const tempGroup = new Set();
-                    tempGroup.add(mesh.joint);
-                    mesh.joint.tempGroup = tempGroup;
-                    this.uiManager.showSpringControl(tempGroup);
+                    // For Ctrl+Alt+click (individual spring), only create slider if not already in a group
+                    const existingGroup = mesh.joint.group;
+                    if (!existingGroup || existingGroup.size === 1) {
+                        // Only create temporary group for truly individual springs
+                        const tempGroup = new Set();
+                        tempGroup.add(mesh.joint);
+                        mesh.joint.tempGroup = tempGroup;
+                        this.uiManager.showSpringControl(tempGroup);
+                    }
+                    // If spring is already in a multi-spring group, don't create duplicate slider
                 }
             } else {
                 this.sceneManager.highlightLayer.removeMesh(mesh);
