@@ -11,6 +11,7 @@ export class UIManager {
         this.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
         this.createButtonPanel();
         this.createControlPanel();
+        this.createHelpPanel();
     }
 
     createButtonPanel() {
@@ -27,6 +28,31 @@ export class UIManager {
         this.controlPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
         this.controlPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
         this.advancedTexture.addControl(this.controlPanel);
+    }
+
+    createHelpPanel() {
+        this.helpPanel = new BABYLON.GUI.StackPanel();
+        this.helpPanel.width = "300px";
+        this.helpPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        this.helpPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        this.advancedTexture.addControl(this.helpPanel);
+
+        const helpText = new BABYLON.GUI.TextBlock();
+        helpText.text = "Mouse Controls:\n" +
+                       "• Alt+Click: Select spheres (green)\n" +
+                       "• Ctrl+Alt+Click: Select springs (red)\n" +
+                       "• Shift+Click: Select spring groups (red/yellow)\n" +
+                       "• Ctrl+Click: Clear sphere selection\n" +
+                       "• Ctrl+Shift+Click: Clear spring selection";
+        helpText.height = "120px";
+        helpText.color = "white";
+        helpText.fontSize = "14px";
+        helpText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        helpText.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        helpText.paddingTop = "10px";
+        helpText.paddingLeft = "10px";
+        
+        this.helpPanel.addControl(helpText);
     }
 
     addButton(text, callback) {
