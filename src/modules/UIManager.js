@@ -116,6 +116,16 @@ export class UIManager {
         group.slider = control.slider;
         group.header = control.header;
         
+        // Get the actual current value from the first spring in the group
+        if (group.size > 0) {
+            const firstJoint = group.values().next().value;
+            if (firstJoint && firstJoint.physicsJoint) {
+                const currentValue = firstJoint.physicsJoint.restLength;
+                control.slider.value = currentValue;
+                control.header.text = "Spring length: " + currentValue.toFixed(2);
+            }
+        }
+        
         control.header.isVisible = true;
         control.slider.isVisible = true;
         this.controlPanel.addControl(control.header);
